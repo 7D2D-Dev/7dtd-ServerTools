@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Timers;
 using System.Xml;
 using UnityEngine;
@@ -10,7 +11,7 @@ namespace ServerTools
         public static bool CoreIsRunning = false, HalfSecondIsRunning = false;
         public static int StopServerMinutes = 0, eventTime = 0;
         private static int twoSecondTick, fiveSecondTick, tenSecondTick, twentySecondTick, oneMinTick, fiveMinTick, stopServerSeconds, eventInvitation,
-            eventOpen, horde, kickVote, muteVote, newPlayer, restartVote, bloodMoans;
+            eventOpen, kickVote, muteVote, newPlayer, restartVote, bloodMoans;
 
         private static readonly System.Timers.Timer Core = new System.Timers.Timer();
         private static readonly System.Timers.Timer HalfSecond = new System.Timers.Timer();
@@ -898,6 +899,22 @@ namespace ServerTools
             };
         }
 
+        public static void AddEventToSchedule(string _toolName, DateTime _time)
+        {
+            System.Timers.Timer singleUseTimer = new System.Timers.Timer(1000)
+            {
+                AutoReset = false
+            };
+            singleUseTimer.Start();
+            singleUseTimer.Elapsed += (sender, e) =>
+            {
+                Init52(_toolName, _time);
+                singleUseTimer.Stop();
+                singleUseTimer.Close();
+                singleUseTimer.Dispose();
+            };
+        }
+
         public static void PersistentDataSave()
         {
             System.Timers.Timer saveDelay = new System.Timers.Timer(60000)
@@ -1043,15 +1060,6 @@ namespace ServerTools
                     kickVote = 0;
                     KickVote.VoteOpen = false;
                     KickVote.ProcessKickVote();
-                }
-            }
-            if (Hordes.IsEnabled)
-            {
-                horde++;
-                if (horde >= 1200)
-                {
-                    horde = 0;
-                    Hordes.Exec();
                 }
             }
             if (Event.Invited)
@@ -1206,9 +1214,9 @@ namespace ServerTools
 
         private static void Init17()
         {
-            WebPanel.Alert = true;
-            if (WebAPI.Panel_Address != "")
+            if (WebAPI.Panel_Address != "" && !WebPanel.Alert)
             {
+                WebPanel.Alert = true;
                 Log.Out(string.Format("[SERVERTOOLS] ServerTools web panel link @ '{0}'", WebAPI.Panel_Address));
             }
         }
@@ -1381,6 +1389,11 @@ namespace ServerTools
         private static void Init51()
         {
             LoadProcess.ChunkRegionReset();
+        }
+
+        private static void Init52(string _toolName, DateTime _time)
+        {
+            EventSchedule.AddToSchedule(_toolName, _time);
         }
     }
 }

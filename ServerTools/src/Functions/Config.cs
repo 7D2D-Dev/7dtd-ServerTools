@@ -7,10 +7,13 @@ namespace ServerTools
 {
     public class Config
     {
-        public const string Version = "21.0.8";
+        public const string Version = "21.1.3";
+        public static bool FirstLoad = true, UpdateWebAPI = false;
+        public static string IP = "";
+        public static int Port;
+
         public static string Server_Response_Name = "[FFCC00]ServerTools", Chat_Response_Color = "[00FF00]";
         public static string ConfigFilePath = string.Format("{0}/{1}", API.ConfigPath, ConfigFile);
-        public static bool FirstLoad = true;
 
         private const string ConfigFile = "ServerToolsConfig.xml";
         private static FileSystemWatcher FileWatcher = new FileSystemWatcher(API.ConfigPath, ConfigFile);
@@ -99,32 +102,6 @@ namespace ServerTools
                                             continue;
                                         }
                                         break;
-                                    case "Allocs_Map":
-                                        if (!line.HasAttribute("Enable"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Allocs_Map entry in ServerToolsConfig.xml because of missing 'Enable' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!bool.TryParse(line.GetAttribute("Enable"), out AllocsMap.IsEnabled))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Allocs_Map entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!line.HasAttribute("Link"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Allocs_Map entry in ServerToolsConfig.xml because of missing 'Link' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (line.HasAttribute("Link"))
-                                        {
-                                            string link = line.GetAttribute("Link");
-                                            if (AllocsMap.Link != link)
-                                            {
-                                                AllocsMap.Link = link;
-                                                AllocsMap.SetLink(link);
-                                            }
-                                        }
-                                        break;
                                     case "Animal_Tracking":
                                         if (!line.HasAttribute("Enable"))
                                         {
@@ -136,14 +113,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Animal_Tracking entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Animal_Tracking entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Animal_Tracking entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out AnimalTracking.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out AnimalTracking.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Animal_Tracking entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Animal_Tracking entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Minimum_Spawn_Radius"))
@@ -219,14 +196,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auction entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Admin_Level' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Total_Items"))
+                                        if (!line.HasAttribute("Max_Items"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auction entry in ServerToolsConfig.xml because of missing 'Total_Items' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auction entry in ServerToolsConfig.xml because of missing 'Max_Items' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Total_Items"), out Auction.Total_Items))
+                                        if (!int.TryParse(line.GetAttribute("Max_Items"), out Auction.Max_Items))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auction entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Total_Items' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auction entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Max_Items' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Tax"))
@@ -276,14 +253,14 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("AutoBackup");
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Saves"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auto_Backup entry in ServerToolsConfig.xml because of missing 'Delay_Between_Saves' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auto_Backup entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         else
                                         {
-                                            AutoBackup.Delay = line.GetAttribute("Delay_Between_Saves");
+                                            AutoBackup.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (!line.HasAttribute("Compression_Level"))
                                         {
@@ -369,14 +346,14 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("AutoSaveWorld");
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Saves"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auto_Save_World entry in ServerToolsConfig.xml because of missing 'Delay_Between_Saves' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Auto_Save_World entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay_Between_Saves"))
+                                        else
                                         {
-                                            AutoSaveWorld.Delay = line.GetAttribute("Delay_Between_Saves");
+                                            AutoSaveWorld.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (AutoSaveWorld.IsEnabled)
                                         {
@@ -493,14 +470,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bed entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bed entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bed entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Bed.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Bed.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bed entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bed entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -607,14 +584,14 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("Bloodmoon");
                                         }
-                                        if (!line.HasAttribute("Delay"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bloodmoon entry in ServerToolsConfig.xml because of missing 'Delay' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Bloodmoon entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay"))
+                                        else
                                         {
-                                            Bloodmoon.Delay = line.GetAttribute("Delay");
+                                            Bloodmoon.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (!line.HasAttribute("Show_On_Respawn"))
                                         {
@@ -1025,14 +1002,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Clean_Bin entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Bounties' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delays"))
+                                        if (!line.HasAttribute("Player_Delays"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Clean_Bin entry in ServerToolsConfig.xml because of missing 'Delays' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Clean_Bin entry in ServerToolsConfig.xml because of missing 'Player_Delays' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!bool.TryParse(line.GetAttribute("Delays"), out CleanBin.Delays))
+                                        if (!bool.TryParse(line.GetAttribute("Player_Delays"), out CleanBin.Player_Delays))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Clean_Bin entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Delays' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Clean_Bin entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Player_Delays' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -1345,14 +1322,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Died entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Max_Level' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Died entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Died entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Died.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Died.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Died entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Died entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -1768,6 +1745,20 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring FPS entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
+                                        if (!line.HasAttribute("Max_FPS"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring FPS entry in ServerToolsConfig.xml because of missing 'Max_FPS' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (int.TryParse(line.GetAttribute("Max_FPS"), out int target))
+                                        {
+                                            Fps.SetTarget(target);
+                                        }
+                                        else
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring FPS entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Max_FPS' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
                                         break;
                                     case "Friend_Teleport":
                                         if (!line.HasAttribute("Enable"))
@@ -1780,14 +1771,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Friend_Teleport entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Friend_Teleport entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Friend_Teleport entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out FriendTeleport.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out FriendTeleport.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Friend_Teleport entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Friend_Teleport entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -1832,14 +1823,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gamble entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gamble entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gamble entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Gamble.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Gamble.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gamble entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gamble entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -1864,14 +1855,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gimme entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gimme entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gimme entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Gimme.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Gimme.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gimme entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Gimme entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Zombies"))
@@ -1978,6 +1969,38 @@ namespace ServerTools
                                             continue;
                                         }
                                         break;
+                                    case "Harvest":
+                                        if (!line.HasAttribute("Enable"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of missing 'Enable' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!bool.TryParse(line.GetAttribute("Enable"), out Harvest.IsEnabled))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!line.HasAttribute("Delay_minutes"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Harvest.Delay_Between_Uses))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!line.HasAttribute("Command_Cost"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of missing 'Command_Cost' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!int.TryParse(line.GetAttribute("Command_Cost"), out Harvest.Command_Cost))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Harvest entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Command_Cost' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        break;
                                     case "High_Ping_Kicker":
                                         if (!line.HasAttribute("Enable"))
                                         {
@@ -2051,14 +2074,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Homes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Command_Cost' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Homes entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Homes entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Homes.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Homes.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Homes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Homes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -2115,15 +2138,29 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Players' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Zombies"))
+                                        if (!line.HasAttribute("Zombie_Count"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of missing 'Zombies' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of missing 'Zombie_Count' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Zombies"), out Hordes.Zombies))
+                                        if (!int.TryParse(line.GetAttribute("Zombie_Count"), out Hordes.Zombie_Count))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Zombies' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Zombie_Count' attribute: {0}", line.OuterXml));
                                             continue;
+                                        }
+                                        if (!line.HasAttribute("Delay_minutes"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Hordes entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            string delay = line.GetAttribute("Delay_minutes");
+                                            if (Hordes.Delay != delay)
+                                            {
+                                                Hordes.Delay = delay;
+                                                Hordes.SetDelay(FirstLoad);
+                                            }
                                         }
                                         break;
                                     case "Infinite_Ammo":
@@ -2135,6 +2172,16 @@ namespace ServerTools
                                         if (!bool.TryParse(line.GetAttribute("Enable"), out InfiniteAmmo.IsEnabled))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Infinite_Ammo entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!line.HasAttribute("Admin_Level"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Infinite_Ammo entry in ServerToolsConfig.xml because of missing 'Admin_Level' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!int.TryParse(line.GetAttribute("Admin_Level"), out InfiniteAmmo.Admin_Level))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Infinite_Ammo entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Admin_Level' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -2153,14 +2200,19 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("InfoTicker");
                                         }
-                                        if (!line.HasAttribute("Delay"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Info_Ticker entry in ServerToolsConfig.xml because of missing 'Delay' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Info_Ticker entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay"))
+                                        else
                                         {
-                                            InfoTicker.Delay = line.GetAttribute("Delay");
+                                            string delay = line.GetAttribute("Delay_minutes");
+                                            if (InfoTicker.Delay != delay)
+                                            {
+                                                InfoTicker.Delay = delay;
+                                                InfoTicker.SetDelay(FirstLoad);
+                                            }
                                         }
                                         if (!line.HasAttribute("Random"))
                                         {
@@ -2172,32 +2224,29 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Info_Ticker entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Random' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (InfoTicker.IsEnabled)
-                                        {
-                                            InfoTicker.SetDelay(FirstLoad);
-                                        }
+                                        
                                         break;
-                                    case "Interactive_Map":
-                                        if (!line.HasAttribute("Enable"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of missing 'Enable' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!bool.TryParse(line.GetAttribute("Enable"), out InteractiveMap.IsEnabled))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!line.HasAttribute("Map_Directory"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of missing 'Map_Directory' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (line.HasAttribute("Map_Directory"))
-                                        {
-                                            InteractiveMap.Map_Directory = line.GetAttribute("Map_Directory");
-                                        }
-                                        break;
+                                    //case "Interactive_Map":
+                                    //    if (!line.HasAttribute("Enable"))
+                                    //    {
+                                    //        Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of missing 'Enable' attribute: {0}", line.OuterXml));
+                                    //        continue;
+                                    //    }
+                                    //    if (!bool.TryParse(line.GetAttribute("Enable"), out InteractiveMap.IsEnabled))
+                                    //    {
+                                    //        Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
+                                    //        continue;
+                                    //    }
+                                    //    if (!line.HasAttribute("Map_Directory"))
+                                    //    {
+                                    //        Log.Warning(string.Format("[SERVERTOOLS] Ignoring Interactive_Map entry in ServerToolsConfig.xml because of missing 'Map_Directory' attribute: {0}", line.OuterXml));
+                                    //        continue;
+                                    //    }
+                                    //    if (line.HasAttribute("Map_Directory"))
+                                    //    {
+                                    //        InteractiveMap.Map_Directory = line.GetAttribute("Map_Directory");
+                                    //    }
+                                    //    break;
                                     case "Invalid_Items":
                                         if (!line.HasAttribute("Enable"))
                                         {
@@ -2446,14 +2495,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Return' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Lobby.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Lobby.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Lobby_Size"))
@@ -2509,16 +2558,6 @@ namespace ServerTools
                                         if (!bool.TryParse(line.GetAttribute("PvE"), out Lobby.PvE))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby_Extended1 entry in ServerToolsConfig.xml because of invalid (True/False) value for 'PvE' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!line.HasAttribute("Damage_Z"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby_Extended1 entry in ServerToolsConfig.xml because of missing 'Damage_Z' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!bool.TryParse(line.GetAttribute("Damage_Z"), out Lobby.Damage_Z))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Lobby_Extended1 entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Damage_Z' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -2639,14 +2678,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Return' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Market.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Market.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Market_Size"))
@@ -2702,16 +2741,6 @@ namespace ServerTools
                                         if (!bool.TryParse(line.GetAttribute("PvE"), out Market.PvE))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market_Extended1 entry in ServerToolsConfig.xml because of invalid (True/False) value for 'PvE' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!line.HasAttribute("Damage_Z"))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market_Extended1 entry in ServerToolsConfig.xml because of missing 'Damage_Z' attribute: {0}", line.OuterXml));
-                                            continue;
-                                        }
-                                        if (!bool.TryParse(line.GetAttribute("Damage_Z"), out Market.Damage_Z))
-                                        {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Market_Extended1 entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Damage_Z' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -2940,14 +2969,14 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("NightAlert");
                                         }
-                                        if (!line.HasAttribute("Delay"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Night_Alert entry in ServerToolsConfig.xml because of missing 'Delay' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Night_Alert entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay"))
+                                        else
                                         {
-                                            NightAlert.Delay = line.GetAttribute("Delay");
+                                            NightAlert.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (NightAlert.IsEnabled)
                                         {
@@ -3066,14 +3095,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Player_Logs entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Vehicle' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Interval"))
+                                        if (!line.HasAttribute("Delay_seconds"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Player_Logs entry in ServerToolsConfig.xml because of missing 'Interval' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Player_Logs entry in ServerToolsConfig.xml because of missing 'Delay_seconds' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Interval"))
+                                        else
                                         {
-                                            PlayerLogs.Delay = line.GetAttribute("Interval");
+                                            PlayerLogs.Delay = line.GetAttribute("Delay_seconds");
                                         }
                                         if (PlayerLogs.IsEnabled)
                                         {
@@ -3229,14 +3258,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Prayer entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Prayer entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Prayer entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Prayer.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Prayer.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Prayer entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Prayer entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -3271,6 +3300,16 @@ namespace ServerTools
                                         if (!bool.TryParse(line.GetAttribute("Enable"), out ProtectedZones.IsEnabled))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Protected_Zones entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!line.HasAttribute("Admin_Level"))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Protected_Zones entry in ServerToolsConfig.xml because of missing 'Admin_Level' attribute: {0}", line.OuterXml));
+                                            continue;
+                                        }
+                                        if (!int.TryParse(line.GetAttribute("Admin_Level"), out ProtectedZones.Admin_Level))
+                                        {
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Protected_Zones entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Admin_Level' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -3343,14 +3382,14 @@ namespace ServerTools
                                         {
                                             EventSchedule.Expired.Add("RealWorldTime");
                                         }
-                                        if (!line.HasAttribute("Delay"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Real_World_Time entry in ServerToolsConfig.xml because of missing 'Delay' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Real_World_Time entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay"))
+                                        else
                                         {
-                                            RealWorldTime.Delay = line.GetAttribute("Delay");
+                                            RealWorldTime.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (!line.HasAttribute("Time_Zone"))
                                         {
@@ -3409,14 +3448,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Report entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Report entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Report entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Report.Delay))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Report.Delay))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Report entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Report entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Length"))
@@ -3560,14 +3599,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Scout_Player entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Scout_Player entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Scout_Player entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out ScoutPlayer.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out ScoutPlayer.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Scout_Player entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Scout_Player entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -3662,7 +3701,7 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Shutdown entry in ServerToolsConfig.xml because of missing 'Time' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Time"))
+                                        else
                                         {
                                             Shutdown.Time = line.GetAttribute("Time");
                                         }
@@ -3814,14 +3853,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Stuck entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Stuck entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Stuck entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Stuck.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Stuck.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Stuck entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Stuck entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -3836,14 +3875,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Killme entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Killme entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Killme entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Suicide.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Suicide.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Killme entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Killme entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Player_Check"))
@@ -3898,14 +3937,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Travel entry in ServerToolsConfig.xml because of invalid (True/False) value for 'Enable' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Travel entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Travel entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Travel.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Travel.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Travel entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Travel entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -4002,14 +4041,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Vehicle_Recall entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Distance' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Vehicle_Recall entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Vehicle_Recall entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out VehicleRecall.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out VehicleRecall.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Vehicle_Recall entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Vehicle_Recall entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         if (!line.HasAttribute("Command_Cost"))
@@ -4057,14 +4096,14 @@ namespace ServerTools
                                         {
                                             Voting.API_Key = line.GetAttribute("API_Key");
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_hours"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Voting entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Voting entry in ServerToolsConfig.xml because of missing 'Delay_hours' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Voting.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_hours"), out Voting.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Voting entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Voting entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_hours' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -4253,14 +4292,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Watch_List entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Admin_Level' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Watch_List entry in ServerToolsConfig.xml because of missing 'Delay' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Watch_List entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (line.HasAttribute("Delay"))
+                                        else
                                         {
-                                            WatchList.Delay = line.GetAttribute("Delay");
+                                            WatchList.Delay = line.GetAttribute("Delay_minutes");
                                         }
                                         if (WatchList.IsEnabled)
                                         {
@@ -4308,14 +4347,14 @@ namespace ServerTools
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Waypoints entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Command_Cost' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!line.HasAttribute("Delay_Between_Uses"))
+                                        if (!line.HasAttribute("Delay_minutes"))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Waypoints entry in ServerToolsConfig.xml because of missing 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Waypoints entry in ServerToolsConfig.xml because of missing 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (!int.TryParse(line.GetAttribute("Delay_Between_Uses"), out Waypoints.Delay_Between_Uses))
+                                        if (!int.TryParse(line.GetAttribute("Delay_minutes"), out Waypoints.Delay_Between_Uses))
                                         {
-                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Waypoints entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_Between_Uses' attribute: {0}", line.OuterXml));
+                                            Log.Warning(string.Format("[SERVERTOOLS] Ignoring Waypoints entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Delay_minutes' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
                                         break;
@@ -4379,32 +4418,29 @@ namespace ServerTools
                                         }
                                         else
                                         {
-                                            string ip = line.GetAttribute("IP_Address");
-                                            if (WebAPI.BaseAddress != ip)
+                                            IP = line.GetAttribute("IP_Address");
+                                            if (IP != "" && WebAPI.BaseAddress != IP)
                                             {
-                                                WebAPI.BaseAddress = ip;
-                                                WebAPI.LinksRequireUpdate = true;
+                                                UpdateWebAPI = true;
                                             }
                                         }
-                                        int port;
                                         if (!line.HasAttribute("Port"))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Web_API entry in ServerToolsConfig.xml because of missing 'Port' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        else if (!int.TryParse(line.GetAttribute("Port"), out port))
+                                        else if (!int.TryParse(line.GetAttribute("Port"), out Port))
                                         {
                                             Log.Warning(string.Format("[SERVERTOOLS] Ignoring Web_API entry in ServerToolsConfig.xml because of invalid (non-numeric) value for 'Port' attribute: {0}", line.OuterXml));
                                             continue;
                                         }
-                                        if (WebAPI.Port != port)
+                                        if (WebAPI.Port != Port)
                                         {
-                                            WebAPI.Port = port;
-                                            WebAPI.LinksRequireUpdate = true;
+                                            UpdateWebAPI = true;
                                         }
-                                        if (WebAPI.LinksRequireUpdate)
+                                        if (UpdateWebAPI)
                                         {
-                                            GeneralOperations.SetWindowLinks();
+                                            WebAPI.AssignAddress(IP, Port);
                                         }
                                         break;
                                     case "Web_Panel":
@@ -4589,14 +4625,14 @@ namespace ServerTools
                                 string fileNameShort = fileName.Substring(fileName.IndexOf("ServerTools") + 11);
                                 File.Copy(fileName, API.ConfigPath + "/XMLBackups/" + date + "/" + fileNameShort);
                             }
-                            Log.Out(string.Format("[SERVERTOOLS] Created a backup of the current xml"));
+                            Log.Out("[SERVERTOOLS] Created a backup of the current xml");
                         }
                     }
                     XmlElement element = xmlDoc.DocumentElement;
                     File.Delete(ConfigFilePath);
                     WriteXml();
                     UpgradeXml(element);
-                    Log.Out(string.Format("[SERVERTOOLS] The existing ServerToolsConfig.xml has been rebuilt for version '{0}'", Version));
+                    Log.Out("[SERVERTOOLS] The existing ServerToolsConfig.xml has been rebuilt for version '{0}'", Version);
                 }
             }
             catch (XmlException e)
@@ -4611,6 +4647,7 @@ namespace ServerTools
             FileWatcher.EnableRaisingEvents = false;
             using (StreamWriter sw = new StreamWriter(ConfigFilePath, false, Encoding.UTF8))
             {
+                sw.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
                 sw.WriteLine("<ServerTools>");
                 sw.WriteLine("    <!-- <Version=\"{0}\" /> -->", Config.Version);
                 sw.WriteLine("    <AntiCheat>");
@@ -4619,15 +4656,15 @@ namespace ServerTools
                 sw.WriteLine("        <Anti Name=\"Dupe_Log\" Enable=\"{0}\" />", DupeLog.IsEnabled);
                 sw.WriteLine("        <Anti Name=\"Flying_Detector\" Enable=\"{0}\" Admin_Level=\"{1}\" Flags=\"{2}\" />", FlyingDetector.IsEnabled, FlyingDetector.Flying_Admin_Level, FlyingDetector.Flag_Limit);
                 sw.WriteLine("        <Anti Name=\"Godmode_Detector\" Enable=\"{0}\" Admin_Level=\"{1}\" />", GodMode.IsEnabled, GodMode.Admin_Level);
-                sw.WriteLine("        <Anti Name=\"Infinite_Ammo\" Enable=\"{0}\" />", InfiniteAmmo.IsEnabled);
+                sw.WriteLine("        <Anti Name=\"Infinite_Ammo\" Enable=\"{0}\" Admin_Level=\"{1}\" />", InfiniteAmmo.IsEnabled, InfiniteAmmo.Admin_Level);
                 sw.WriteLine("        <Anti Name=\"Invalid_Buffs\" Enable=\"{0}\" />", InvalidBuffs.IsEnabled);
                 sw.WriteLine("        <Anti Name=\"Invalid_Items\" Enable=\"{0}\" Ban=\"{1}\" Admin_Level=\"{2}\" />", InvalidItems.IsEnabled, InvalidItems.Ban_Player, InvalidItems.Admin_Level);
                 sw.WriteLine("        <Anti Name=\"Invalid_Item_Stack\" Enable=\"{0}\" />", InvalidItems.Invalid_Stack);
                 sw.WriteLine("        <Anti Name=\"Jail\" Enable=\"{0}\" Jail_Size=\"{1}\" Jail_Position=\"{2}\" Jail_Shock=\"{3}\" />", Jail.IsEnabled, Jail.Jail_Size, Jail.Jail_Position, Jail.Jail_Shock);
-                sw.WriteLine("        <Anti Name=\"Player_Logs\" Enable=\"{0}\" Vehicle=\"{1}\" Interval=\"{2}\" />", PlayerLogs.IsEnabled, PlayerLogs.Vehicle, PlayerLogs.Delay);
+                sw.WriteLine("        <Anti Name=\"Player_Logs\" Enable=\"{0}\" Vehicle=\"{1}\" Delay_seconds=\"{2}\" />", PlayerLogs.IsEnabled, PlayerLogs.Vehicle, PlayerLogs.Delay);
                 sw.WriteLine("        <Anti Name=\"Player_Stats\" Enable=\"{0}\" Health=\"{1}\" Stamina=\"{2}\" Jump_Strength=\"{3}\" />", PlayerStats.IsEnabled, PlayerStats.Health, PlayerStats.Stamina, PlayerStats.Jump_Strength);
                 sw.WriteLine("        <Anti Name=\"Player_Stats_Extended\" Height=\"{0}\" Admin_Level=\"{1}\" Kick_Enabled=\"{2}\" Ban_Enabled=\"{3}\" />", PlayerStats.Height, PlayerStats.Admin_Level, PlayerStats.Kick_Enabled, PlayerStats.Ban_Enabled);
-                sw.WriteLine("        <Anti Name=\"Protected_Zones\" Enable=\"{0}\" />", ProtectedZones.IsEnabled);
+                sw.WriteLine("        <Anti Name=\"Protected_Zones\" Enable=\"{0}\" Admin_Level=\"{1}\" />", ProtectedZones.IsEnabled, ProtectedZones.Admin_Level);
                 sw.WriteLine("        <Anti Name=\"PvE_Violations\" Jail=\"{0}\" Kill=\"{1}\" Kick=\"{2}\" Ban=\"{3}\" />", GeneralOperations.Jail_Violation, GeneralOperations.Kill_Violation, GeneralOperations.Kick_Violation, GeneralOperations.Ban_Violation);
                 sw.WriteLine("        <Anti Name=\"Spectator_Detector\" Enable=\"{0}\" Admin_Level=\"{1}\" />", PlayerChecks.SpectatorEnabled, PlayerChecks.Spectator_Admin_Level);
                 sw.WriteLine("        <Anti Name=\"Speed_Detector\" Enable=\"{0}\" Admin_Level=\"{1}\" Flags=\"{2}\" />", SpeedDetector.IsEnabled, SpeedDetector.Speed_Admin_Level, SpeedDetector.Total_Flags);
@@ -4637,25 +4674,24 @@ namespace ServerTools
                 sw.WriteLine("    <Tools>");
                 sw.WriteLine("        <Tool Name=\"Admin_Chat_Commands\" Enable=\"{0}\" />", AdminChat.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Admin_List\" Enable=\"{0}\" Admin_Level=\"{1}\" Moderator_Level=\"{2}\" />", AdminList.IsEnabled, AdminList.Admin_Level, AdminList.Mod_Level);
-                //sw.WriteLine("        <Tool Name=\"Allocs_Map\" Enable=\"{0}\" Link=\"{1}\" />", AllocsMap.IsEnabled, AllocsMap.Link);
-                sw.WriteLine("        <Tool Name=\"Animal_Tracking\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Minimum_Spawn_Radius=\"{2}\" Maximum_Spawn_Radius=\"{3}\" Animal_Ids=\"{4}\" />", AnimalTracking.IsEnabled, AnimalTracking.Delay_Between_Uses, AnimalTracking.Minimum_Spawn_Radius, AnimalTracking.Maximum_Spawn_Radius, AnimalTracking.Animal_Ids);
+                sw.WriteLine("        <Tool Name=\"Animal_Tracking\" Enable=\"{0}\" Delay_minutes=\"{1}\" Minimum_Spawn_Radius=\"{2}\" Maximum_Spawn_Radius=\"{3}\" Animal_Ids=\"{4}\" />", AnimalTracking.IsEnabled, AnimalTracking.Delay_Between_Uses, AnimalTracking.Minimum_Spawn_Radius, AnimalTracking.Maximum_Spawn_Radius, AnimalTracking.Animal_Ids);
                 sw.WriteLine("        <Tool Name=\"Animal_Tracking_Extended\" Command_Cost=\"{0}\" />", AnimalTracking.Command_Cost);
-                sw.WriteLine("        <Tool Name=\"Auction\" Enable=\"{0}\" No_Admins=\"{1}\" Admin_Level=\"{2}\" Total_Items=\"{3}\" Tax=\"{4}\" />", Auction.IsEnabled, Auction.No_Admins, Auction.Admin_Level, Auction.Total_Items, Auction.Tax);
+                sw.WriteLine("        <Tool Name=\"Auction\" Enable=\"{0}\" No_Admins=\"{1}\" Admin_Level=\"{2}\" Max_Items=\"{3}\" Tax=\"{4}\" />", Auction.IsEnabled, Auction.No_Admins, Auction.Admin_Level, Auction.Max_Items, Auction.Tax);
                 sw.WriteLine("        <Tool Name=\"Auction_Extended\" Panel=\"{0}\" Panel_Name=\"{1}\" />", Auction.Panel, Auction.Panel_Name);
-                sw.WriteLine("        <Tool Name=\"Auto_Backup\" Enable=\"{0}\" Delay_Between_Saves=\"{1}\" Compression_Level=\"{2}\" Backup_Count=\"{3}\" />", AutoBackup.IsEnabled, AutoBackup.Delay, AutoBackup.Compression_Level, AutoBackup.Backup_Count);
+                sw.WriteLine("        <Tool Name=\"Auto_Backup\" Enable=\"{0}\" Delay_minutes=\"{1}\" Compression_Level=\"{2}\" Backup_Count=\"{3}\" />", AutoBackup.IsEnabled, AutoBackup.Delay, AutoBackup.Compression_Level, AutoBackup.Backup_Count);
                 sw.WriteLine("        <Tool Name=\"Auto_Backup_Extended\" Target_Directory=\"{0}\" Save_Destination=\"{1}\" />", AutoBackup.Target_Directory, AutoBackup.Save_Destination);
                 sw.WriteLine("        <Tool Name=\"Auto_Party_Invite\" Enable=\"{0}\" />", AutoPartyInvite.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Auto_Restart\" Enable=\"{0}\" />", AutoRestart.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Auto_Save_World\" Enable=\"{0}\" Delay_Between_Saves=\"{1}\" />", AutoSaveWorld.IsEnabled, AutoSaveWorld.Delay);
+                sw.WriteLine("        <Tool Name=\"Auto_Save_World\" Enable=\"{0}\" Delay_minutes=\"{1}\" />", AutoSaveWorld.IsEnabled, AutoSaveWorld.Delay);
                 sw.WriteLine("        <Tool Name=\"Bad_Word_Filter\" Enable=\"{0}\" Invalid_Name=\"{1}\" />", Badwords.IsEnabled, Badwords.Invalid_Name);
                 sw.WriteLine("        <Tool Name=\"Bank\" Enable=\"{0}\" Inside_Claim=\"{1}\" Deposit_Fee_Percent=\"{2}\" Player_Transfers=\"{3}\" Direct_Deposit=\"{4}\" />", Bank.IsEnabled, Bank.Inside_Claim, Bank.Deposit_Fee_Percent, Bank.Player_Transfers, Bank.Direct_Deposit);
                 sw.WriteLine("        <Tool Name=\"Bank_Extended\" Deposit_Message=\"{0}\" Direct_Payment=\"{1}\" />", Bank.Deposit_Message, Bank.Direct_Payment);
-                sw.WriteLine("        <Tool Name=\"Bed\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" />", Bed.IsEnabled, Bed.Delay_Between_Uses, Bed.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"Bed\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" />", Bed.IsEnabled, Bed.Delay_Between_Uses, Bed.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"Big_Head\" Enable=\"{0}\" />", BigHead.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Block_Logger\" Enable=\"{0}\" />", BlockLogger.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Block_Pickup\" Enable=\"{0}\" Admin_Only=\"{1}\" Admin_Level=\"{2}\" Reserved=\"{3}\" />", BlockPickup.IsEnabled, BlockPickup.Admin_Only, BlockPickup.Admin_Level, BlockPickup.Reserved);
                 sw.WriteLine("        <Tool Name=\"Blood_Moans\" Enable=\"{0}\" />", BloodMoans.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Bloodmoon\" Enable=\"{0}\" Delay=\"{1}\" Show_On_Respawn=\"{2}\" />", Bloodmoon.IsEnabled, Bloodmoon.Delay, Bloodmoon.Show_On_Respawn);
+                sw.WriteLine("        <Tool Name=\"Bloodmoon\" Enable=\"{0}\" Delay_minutes=\"{1}\" Show_On_Respawn=\"{2}\" />", Bloodmoon.IsEnabled, Bloodmoon.Delay, Bloodmoon.Show_On_Respawn);
                 sw.WriteLine("        <Tool Name=\"Bloodmoon_Warrior\" Enable=\"{0}\" Zombie_Kills=\"{1}\" Chance=\"{2}\" Reduce_Death_Count=\"{3}\" Reward_Count=\"{4}\" />", BloodmoonWarrior.IsEnabled, BloodmoonWarrior.Zombie_Kills, BloodmoonWarrior.Chance, BloodmoonWarrior.Reduce_Death_Count, BloodmoonWarrior.Reward_Count);
                 sw.WriteLine("        <Tool Name=\"Bot_Response\" Enable=\"{0}\" />", BotResponse.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Bounties\" Enable=\"{0}\" Minimum_Bounty=\"{1}\" Kill_Streak=\"{2}\" Bonus=\"{3}\" />", Bounties.IsEnabled, Bounties.Minimum_Bounty, Bounties.Kill_Streak, Bounties.Bonus);
@@ -4668,7 +4704,7 @@ namespace ServerTools
                 sw.WriteLine("        <Tool Name=\"Chat_Logger\" Enable=\"{0}\" />", ChatLog.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Chunk_Reset\" Enable=\"{0}\" Buff_Icon=\"{1}\" />", ChunkReset.IsEnabled, ChunkReset.Icon);
                 sw.WriteLine("        <Tool Name=\"Clan_Manager\" Enable=\"{0}\" Max_Name_Length=\"{1}\" Private_Chat_Color=\"{2}\" />", ClanManager.IsEnabled, ClanManager.Max_Name_Length, ClanManager.Private_Chat_Color);
-                sw.WriteLine("        <Tool Name=\"Clean_Bin\" Enable=\"{0}\" Auction=\"{1}\" Bank=\"{2}\" Bounties=\"{3}\" Delays=\"{4}\" />", CleanBin.IsEnabled, CleanBin.Auction, CleanBin.Bank, CleanBin.Bounties, CleanBin.Delays);
+                sw.WriteLine("        <Tool Name=\"Clean_Bin\" Enable=\"{0}\" Auction=\"{1}\" Bank=\"{2}\" Bounties=\"{3}\" Player_Delays=\"{4}\" />", CleanBin.IsEnabled, CleanBin.Auction, CleanBin.Bank, CleanBin.Bounties, CleanBin.Player_Delays);
                 sw.WriteLine("        <Tool Name=\"Clean_Bin_Extended1\" Homes=\"{0}\" Jail=\"{1}\" Lobby=\"{2}\" Market=\"{3}\" New_Spawn_Tele=\"{4}\" />", CleanBin.Homes, CleanBin.Jail, CleanBin.Lobby, CleanBin.Market, CleanBin.New_Spawn_Tele);
                 sw.WriteLine("        <Tool Name=\"Clean_Bin_Extended2\" Poll=\"{0}\" Protected_Zones=\"{1}\" Shop_Log=\"{2}\" Waypoints=\"{3}\" />", CleanBin.Poll, CleanBin.Protected_Zones, CleanBin.Shop_Log, CleanBin.Waypoints);
                 sw.WriteLine("        <Tool Name=\"Clean_Bin_Extended3\" Region_Reset=\"{0}\" Chunk_Reset=\"{1}\" />", CleanBin.Region_Reset, CleanBin.Chunk_Reset);
@@ -4676,7 +4712,7 @@ namespace ServerTools
                 sw.WriteLine("        <Tool Name=\"Console_Command_Log\" Enable=\"{0}\" />", ConsoleCommandLog.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Custom_Commands\" Enable=\"{0}\" />", CustomCommands.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Day7\" Enable=\"{0}\" />", Day7.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Died\" Enable=\"{0}\" Time=\"{1}\" Min_Level=\"{2}\" Max_Level=\"{3}\" Delay_Between_Uses=\"{4}\" />", Died.IsEnabled, Died.Time, Died.Min_Level, Died.Max_Level, Died.Delay_Between_Uses);
+                sw.WriteLine("        <Tool Name=\"Died\" Enable=\"{0}\" Time=\"{1}\" Min_Level=\"{2}\" Max_Level=\"{3}\" Delay_minutes=\"{4}\" />", Died.IsEnabled, Died.Time, Died.Min_Level, Died.Max_Level, Died.Delay_Between_Uses);
                 sw.WriteLine("        <Tool Name=\"Died_Extended\" Command_Cost=\"{0}\" />", Died.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"Discord_Bot\" Enable=\"{0}\" Webhook=\"{1}\" />", DiscordBot.IsEnabled, DiscordBot.Webhook);
                 sw.WriteLine("        <Tool Name=\"Discord_Bot_Extended\" Prefix=\"{0}\" Prefix_Color=\"{1}\" Name_Color=\"{2}\" Message_Color=\"{3}\" />", DiscordBot.Prefix, DiscordBot.Prefix_Color, DiscordBot.Name_Color, DiscordBot.Message_Color);
@@ -4689,31 +4725,31 @@ namespace ServerTools
                 sw.WriteLine("        <Tool Name=\"Exit_Command_Extended\" Admin_Level=\"{0}\" Exit_Time=\"{1}\" />", ExitCommand.Admin_Level, ExitCommand.Exit_Time);
                 sw.WriteLine("        <Tool Name=\"Falling_Blocks_Remover\" Enable=\"{0}\" Log=\"{1}\" Max_Blocks=\"{2}\" />", FallingBlocks.IsEnabled, FallingBlocks.OutputLog, FallingBlocks.Max_Blocks);
                 sw.WriteLine("        <Tool Name=\"First_Claim_Block\" Enable=\"{0}\" />", FirstClaimBlock.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"FPS\" Enable=\"{0}\" />", Fps.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Friend_Teleport\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" Player_Check=\"{3}\" Zombie_Check=\"{4}\" />", FriendTeleport.IsEnabled, FriendTeleport.Delay_Between_Uses, FriendTeleport.Command_Cost, FriendTeleport.Player_Check, FriendTeleport.Zombie_Check);
-                sw.WriteLine("        <Tool Name=\"Gamble\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" />", Gamble.IsEnabled, Gamble.Delay_Between_Uses, Gamble.Command_Cost);
-                sw.WriteLine("        <Tool Name=\"Gimme\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Zombies=\"{2}\" Zombie_Id=\"{3}\" Command_Cost=\"{4}\" />", Gimme.IsEnabled, Gimme.Delay_Between_Uses, Gimme.Zombies, Gimme.Zombie_Id, Gimme.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"FPS\" Enable=\"{0}\" Max_FPS=\"{1}\" />", Fps.IsEnabled, Fps.Max_FPS);
+                sw.WriteLine("        <Tool Name=\"Friend_Teleport\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" Player_Check=\"{3}\" Zombie_Check=\"{4}\" />", FriendTeleport.IsEnabled, FriendTeleport.Delay_Between_Uses, FriendTeleport.Command_Cost, FriendTeleport.Player_Check, FriendTeleport.Zombie_Check);
+                sw.WriteLine("        <Tool Name=\"Gamble\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" />", Gamble.IsEnabled, Gamble.Delay_Between_Uses, Gamble.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"Gimme\" Enable=\"{0}\" Delay_minutes=\"{1}\" Zombies=\"{2}\" Zombie_Id=\"{3}\" Command_Cost=\"{4}\" />", Gimme.IsEnabled, Gimme.Delay_Between_Uses, Gimme.Zombies, Gimme.Zombie_Id, Gimme.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"Hardcore\" Enable=\"{0}\" Optional=\"{1}\" Max_Deaths=\"{2}\" Max_Extra_Lives=\"{3}\" Life_Price=\"{4}\" />", Hardcore.IsEnabled, Hardcore.Optional, Hardcore.Max_Deaths, Hardcore.Max_Extra_Lives, Hardcore.Life_Price);
+                sw.WriteLine("        <Tool Name=\"Harvest\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" />", Harvest.IsEnabled, Harvest.Delay_Between_Uses, Harvest.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"High_Ping_Kicker\" Enable=\"{0}\" Max_Ping=\"{1}\" Flags=\"{2}\" />", HighPingKicker.IsEnabled, HighPingKicker.Max_Ping, HighPingKicker.Flags);
-                sw.WriteLine("        <Tool Name=\"Homes\" Enable=\"{0}\" Max_Homes=\"{1}\" Reserved_Max_Homes=\"{2}\" Command_Cost=\"{3}\" Delay_Between_Uses=\"{4}\" />", Homes.IsEnabled, Homes.Max_Homes, Homes.Reserved_Max_Homes, Homes.Command_Cost, Homes.Delay_Between_Uses);
+                sw.WriteLine("        <Tool Name=\"Homes\" Enable=\"{0}\" Max_Homes=\"{1}\" Reserved_Max_Homes=\"{2}\" Command_Cost=\"{3}\" Delay_minutes=\"{4}\" />", Homes.IsEnabled, Homes.Max_Homes, Homes.Reserved_Max_Homes, Homes.Command_Cost, Homes.Delay_Between_Uses);
                 sw.WriteLine("        <Tool Name=\"Homes_Extended\" Player_Check=\"{0}\" Zombie_Check=\"{1}\" Vehicle=\"{2}\" />", Homes.Player_Check, Homes.Zombie_Check, Homes.Vehicle_Check);
-                sw.WriteLine("        <Tool Name=\"Hordes\" Enable=\"{0}\" Players=\"{1}\" Zombies=\"{2}\" />", Hordes.IsEnabled, Hordes.Players, Hordes.Zombies);
-                sw.WriteLine("        <Tool Name=\"Info_Ticker\" Enable=\"{0}\" Delay=\"{1}\" Random=\"{2}\" />", InfoTicker.IsEnabled, InfoTicker.Delay, InfoTicker.Random);
-                sw.WriteLine("        <Tool Name=\"Interactive_Map\" Enable=\"{0}\" Map_Directory=\"{1}\" />", InteractiveMap.IsEnabled, InteractiveMap.Map_Directory);
+                sw.WriteLine("        <Tool Name=\"Hordes\" Enable=\"{0}\" Players=\"{1}\" Zombie_Count=\"{2}\" Delay_minutes=\"{3}\" />", Hordes.IsEnabled, Hordes.Players, Hordes.Zombie_Count, Hordes.Delay);
+                sw.WriteLine("        <Tool Name=\"Info_Ticker\" Enable=\"{0}\" Delay_minutes=\"{1}\" Random=\"{2}\" />", InfoTicker.IsEnabled, InfoTicker.Delay, InfoTicker.Random);
                 sw.WriteLine("        <Tool Name=\"Kick_Vote\" Enable=\"{0}\" Players_Online=\"{1}\" Votes_Needed=\"{2}\" />", KickVote.IsEnabled, KickVote.Players_Online, KickVote.Votes_Needed);
                 sw.WriteLine("        <Tool Name=\"Kill_Notice\" Enable=\"{0}\" Player=\"{1}\" Zombie=\"{2}\" Animal=\"{3}\" Show_Level=\"{4}\" />", KillNotice.IsEnabled, KillNotice.Player, KillNotice.Zombie, KillNotice.Animal, KillNotice.Show_Level);
                 sw.WriteLine("        <Tool Name=\"Kill_Notice_Extended\" Show_Damage=\"{0}\" />", KillNotice.Show_Damage);
                 sw.WriteLine("        <Tool Name=\"Land_Claim_Count\" Enable=\"{0}\" />", LandClaimCount.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Level_Up\" Enable=\"{0}\" Xml_Only=\"{1}\" Announce=\"{2}\" />", LevelUp.IsEnabled, LevelUp.Xml_Only, LevelUp.Announce);
-                sw.WriteLine("        <Tool Name=\"Lobby\" Enable=\"{0}\" Return=\"{1}\" Delay_Between_Uses=\"{2}\" Lobby_Size=\"{3}\" Lobby_Position=\"{4}\" />", Lobby.IsEnabled, Lobby.Return, Lobby.Delay_Between_Uses, Lobby.Lobby_Size, Lobby.Lobby_Position);
-                sw.WriteLine("        <Tool Name=\"Lobby_Extended1\" Reserved_Only=\"{0}\" Command_Cost=\"{1}\" PvE=\"{2}\" Damage_Z=\"{3}\" />", Lobby.Reserved_Only, Lobby.Command_Cost, Lobby.PvE, Lobby.Damage_Z);
+                sw.WriteLine("        <Tool Name=\"Lobby\" Enable=\"{0}\" Return=\"{1}\" Delay_minutes=\"{2}\" Lobby_Size=\"{3}\" Lobby_Position=\"{4}\" />", Lobby.IsEnabled, Lobby.Return, Lobby.Delay_Between_Uses, Lobby.Lobby_Size, Lobby.Lobby_Position);
+                sw.WriteLine("        <Tool Name=\"Lobby_Extended1\" Reserved_Only=\"{0}\" Command_Cost=\"{1}\" PvE=\"{2}\" />", Lobby.Reserved_Only, Lobby.Command_Cost, Lobby.PvE);
                 sw.WriteLine("        <Tool Name=\"Lobby_Extended2\" Player_Check=\"{0}\" Zombie_Check=\"{1}\" />", Lobby.Player_Check, Lobby.Zombie_Check);
                 sw.WriteLine("        <Tool Name=\"Location\" Enable=\"{0}\" />", Loc.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Login_Notice\" Enable=\"{0}\" />", LoginNotice.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Logs\" Days_Before_Log_Delete=\"{0}\" />", LoadProcess.Days_Before_Log_Delete);
                 sw.WriteLine("        <Tool Name=\"Lottery\" Enable=\"{0}\" Entry_Cost=\"{1}\" />", Lottery.IsEnabled, Lottery.Entry_Cost);
-                sw.WriteLine("        <Tool Name=\"Market\" Enable=\"{0}\" Return=\"{1}\" Delay_Between_Uses=\"{2}\" Market_Size=\"{3}\" Market_Position=\"{4}\" />", Market.IsEnabled, Market.Return, Market.Delay_Between_Uses, Market.Market_Size, Market.Market_Position);
-                sw.WriteLine("        <Tool Name=\"Market_Extended1\" Reserved_Only=\"{0}\" Command_Cost=\"{1}\" PvE=\"{2}\" Damage_Z=\"{3}\" />", Market.Reserved_Only, Market.Command_Cost, Market.PvE, Market.Damage_Z, Market.Player_Check, Market.Zombie_Check);
+                sw.WriteLine("        <Tool Name=\"Market\" Enable=\"{0}\" Return=\"{1}\" Delay_minutes=\"{2}\" Market_Size=\"{3}\" Market_Position=\"{4}\" />", Market.IsEnabled, Market.Return, Market.Delay_Between_Uses, Market.Market_Size, Market.Market_Position);
+                sw.WriteLine("        <Tool Name=\"Market_Extended1\" Reserved_Only=\"{0}\" Command_Cost=\"{1}\" PvE=\"{2}\" />", Market.Reserved_Only, Market.Command_Cost, Market.PvE, Market.Player_Check, Market.Zombie_Check);
                 sw.WriteLine("        <Tool Name=\"Market_Extended2\" Player_Check=\"{0}\" Zombie_Check=\"{1}\" />", Market.Player_Check, Market.Zombie_Check);
                 sw.WriteLine("        <Tool Name=\"Message_Color\" Enable=\"{0}\" Color=\"{1}\" />", ChatHook.Message_Color_Enabled, ChatHook.Message_Color);
                 sw.WriteLine("        <Tool Name=\"Motd\" Enable=\"{0}\" Show_On_Respawn=\"{1}\" />", Motd.IsEnabled, Motd.Show_On_Respawn);
@@ -4723,7 +4759,7 @@ namespace ServerTools
                 sw.WriteLine("        <Tool Name=\"New_Player_Extended\" Block_During_Bloodmoon=\"{0}\" />", NewPlayer.Block_During_Bloodmoon);
                 sw.WriteLine("        <Tool Name=\"New_Player_Protection\" Enable=\"{0}\" Level=\"{1}\" />", NewPlayerProtection.IsEnabled, NewPlayerProtection.Level);
                 sw.WriteLine("        <Tool Name=\"New_Spawn_Tele\" Enable=\"{0}\" New_Spawn_Tele_Position=\"{1}\" Return=\"{2}\" />", NewSpawnTele.IsEnabled, NewSpawnTele.New_Spawn_Tele_Position, NewSpawnTele.Return);
-                sw.WriteLine("        <Tool Name=\"Night_Alert\" Enable=\"{0}\" Delay=\"{1}\" />", NightAlert.IsEnabled, NightAlert.Delay);
+                sw.WriteLine("        <Tool Name=\"Night_Alert\" Enable=\"{0}\" Delay_minutes=\"{1}\" />", NightAlert.IsEnabled, NightAlert.Delay);
                 sw.WriteLine("        <Tool Name=\"No_Vehicle_Pickup\" Enable=\"{0}\" />", GeneralOperations.No_Vehicle_Pickup);
                 sw.WriteLine("        <Tool Name=\"Normal_Player_Color_Prefix\" Enable=\"{0}\" Prefix=\"{1}\" Name_Color=\"{2}\" Prefix_Color=\"{3}\" />", ChatHook.Normal_Player_Color_Prefix, ChatHook.Normal_Player_Prefix, ChatHook.Normal_Player_Name_Color, ChatHook.Normal_Player_Prefix_Color);
                 sw.WriteLine("        <Tool Name=\"Oversized_Traps\" Enable=\"{0}\" />", OversizedTraps.IsEnabled);
@@ -4731,34 +4767,34 @@ namespace ServerTools
                 sw.WriteLine("        <Tool Name=\"Player_List\" Enable=\"{0}\" />", PlayerList.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"POI_Protection\" Enable=\"{0}\" Bed=\"{1}\" Claim=\"{2}\" Extra_Distance=\"{3}\" />", POIProtection.IsEnabled, POIProtection.Bed, POIProtection.Claim, POIProtection.Extra_Distance);
                 sw.WriteLine("        <Tool Name=\"Poll\" Enable=\"{0}\" />", Poll.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Prayer\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" />", Prayer.IsEnabled, Prayer.Delay_Between_Uses, Prayer.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"Prayer\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" />", Prayer.IsEnabled, Prayer.Delay_Between_Uses, Prayer.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"Private_Message\" Enable=\"{0}\" />", Whisper.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Public_Waypoints\" Enable=\"{0}\" />", Waypoints.Public_Waypoints);
-                sw.WriteLine("        <Tool Name=\"Real_World_Time\" Enable=\"{0}\" Delay=\"{1}\" Time_Zone=\"{2}\" Adjustment=\"{3}\" />", RealWorldTime.IsEnabled, RealWorldTime.Delay, RealWorldTime.Time_Zone, RealWorldTime.Adjustment);
+                sw.WriteLine("        <Tool Name=\"Real_World_Time\" Enable=\"{0}\" Delay_minutes=\"{1}\" Time_Zone=\"{2}\" Adjustment=\"{3}\" />", RealWorldTime.IsEnabled, RealWorldTime.Delay, RealWorldTime.Time_Zone, RealWorldTime.Adjustment);
                 sw.WriteLine("        <Tool Name=\"Region_Reset\" Enable=\"{0}\" Buff_Icon=\"{1}\" />", RegionReset.IsEnabled, RegionReset.Icon);
-                sw.WriteLine("        <Tool Name=\"Report\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Length=\"{2}\" Admin_Level=\"{3}\" />", Report.IsEnabled, Report.Delay, Report.Length, Report.Admin_Level);
+                sw.WriteLine("        <Tool Name=\"Report\" Enable=\"{0}\" Delay_minutes=\"{1}\" Length=\"{2}\" Admin_Level=\"{3}\" />", Report.IsEnabled, Report.Delay, Report.Length, Report.Admin_Level);
                 sw.WriteLine("        <Tool Name=\"Reserved_Slots\" Enable=\"{0}\" Session_Time=\"{1}\" Admin_Level=\"{2}\" Reduced_Delay=\"{3}\" Bonus_Exp=\"{4}\" />", ReservedSlots.IsEnabled, ReservedSlots.Session_Time, ReservedSlots.Admin_Level, ReservedSlots.Reduced_Delay, ReservedSlots.Bonus_Exp);
                 sw.WriteLine("        <Tool Name=\"Restart_Vote\" Enable=\"{0}\" Players_Online=\"{1}\" Votes_Needed=\"{2}\" Admin_Level=\"{3}\" />", RestartVote.IsEnabled, RestartVote.Players_Online, RestartVote.Votes_Needed, RestartVote.Admin_Level);
                 sw.WriteLine("        <Tool Name=\"Roll_It_Out\" Enable=\"{0}\" />", RIO.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Scout_Player\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" />", ScoutPlayer.IsEnabled, ScoutPlayer.Delay_Between_Uses, ScoutPlayer.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"Scout_Player\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" />", ScoutPlayer.IsEnabled, ScoutPlayer.Delay_Between_Uses, ScoutPlayer.Command_Cost);
                 sw.WriteLine("        <Tool Name=\"Shop\" Enable=\"{0}\" Inside_Market=\"{1}\" Inside_Traders=\"{2}\" Panel=\"{3}\" Panel_Name=\"{4}\" />", Shop.IsEnabled, Shop.Inside_Market, Shop.Inside_Traders, Shop.Panel, Shop.Panel_Name);
                 sw.WriteLine("        <Tool Name=\"Shutdown\" Enable=\"{0}\" Countdown=\"{1}\" Time=\"{2}\" Alert_On_Login=\"{3}\" Alert_Count=\"{4}\" />", Shutdown.IsEnabled, Shutdown.Countdown, Shutdown.Time, Shutdown.Alert_On_Login, Shutdown.Alert_Count);
                 sw.WriteLine("        <Tool Name=\"Shutdown_Extended\" UI_Lock=\"{0}\" Interrupt_Bloodmoon=\"{1}\" />", Shutdown.UI_Lock, Shutdown.Interrupt_Bloodmoon);
                 sw.WriteLine("        <Tool Name=\"Sleeper_Respawn\" Enable=\"{0}\" />", SleeperRespawn.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Sorter\" Enable=\"{0}\" />", Sorter.IsEnabled);
                 sw.WriteLine("        <Tool Name=\"Starting_Items\" Enable=\"{0}\" />", StartingItems.IsEnabled);
-                sw.WriteLine("        <Tool Name=\"Stuck\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" />", Stuck.IsEnabled, Stuck.Delay_Between_Uses);
-                sw.WriteLine("        <Tool Name=\"Suicide\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Player_Check=\"{2}\" Zombie_Check=\"{3}\" />", Suicide.IsEnabled, Suicide.Delay_Between_Uses, Suicide.Player_Check, Suicide.Zombie_Check);
-                sw.WriteLine("        <Tool Name=\"Travel\" Enable=\"{0}\" Delay_Between_Uses=\"{1}\" Command_Cost=\"{2}\" Player_Check=\"{3}\" Zombie_Check=\"{4}\" />", Travel.IsEnabled, Travel.Delay_Between_Uses, Travel.Command_Cost, Travel.Player_Check, Travel.Zombie_Check);
+                sw.WriteLine("        <Tool Name=\"Stuck\" Enable=\"{0}\" Delay_minutes=\"{1}\" />", Stuck.IsEnabled, Stuck.Delay_Between_Uses);
+                sw.WriteLine("        <Tool Name=\"Suicide\" Enable=\"{0}\" Delay_minutes=\"{1}\" Player_Check=\"{2}\" Zombie_Check=\"{3}\" />", Suicide.IsEnabled, Suicide.Delay_Between_Uses, Suicide.Player_Check, Suicide.Zombie_Check);
+                sw.WriteLine("        <Tool Name=\"Travel\" Enable=\"{0}\" Delay_minutes=\"{1}\" Command_Cost=\"{2}\" Player_Check=\"{3}\" Zombie_Check=\"{4}\" />", Travel.IsEnabled, Travel.Delay_Between_Uses, Travel.Command_Cost, Travel.Player_Check, Travel.Zombie_Check);
                 sw.WriteLine("        <Tool Name=\"Vault\" Enable=\"{0}\" Inside_Claim=\"{1}\" Slots=\"{2}\" Lines=\"{3}\" />", Vault.IsEnabled, Vault.Inside_Claim, Vault.Slots, Vault.Lines);
-                sw.WriteLine("        <Tool Name=\"Vehicle_Recall\" Enable=\"{0}\" Distance=\"{1}\" Delay_Between_Uses=\"{2}\" Command_Cost=\"{3}\" />", VehicleRecall.IsEnabled, VehicleRecall.Distance, VehicleRecall.Delay_Between_Uses, VehicleRecall.Command_Cost);
-                sw.WriteLine("        <Tool Name=\"Voting\" Enable=\"{0}\" Link=\"{1}\" API_Key=\"{2}\" Delay_Between_Uses=\"{3}\" />", Voting.IsEnabled, Voting.Link, Voting.API_Key, Voting.Delay_Between_Uses);
+                sw.WriteLine("        <Tool Name=\"Vehicle_Recall\" Enable=\"{0}\" Distance=\"{1}\" Delay_minutes=\"{2}\" Command_Cost=\"{3}\" />", VehicleRecall.IsEnabled, VehicleRecall.Distance, VehicleRecall.Delay_Between_Uses, VehicleRecall.Command_Cost);
+                sw.WriteLine("        <Tool Name=\"Voting\" Enable=\"{0}\" Link=\"{1}\" API_Key=\"{2}\" Delay_hours=\"{3}\" />", Voting.IsEnabled, Voting.Link, Voting.API_Key, Voting.Delay_Between_Uses);
                 sw.WriteLine("        <Tool Name=\"Voting_Extended\" Reward_Count=\"{0}\" Reward_Entity=\"{1}\" Entity_Id=\"{2}\" Weekly_Votes=\"{3}\" />", Voting.Reward_Count, Voting.Reward_Entity, Voting.Entity_Id, Voting.Weekly_Votes);
                 sw.WriteLine("        <Tool Name=\"Wall\" Enable=\"{0}\" Player_Check=\"{1}\" Reserved=\"{2}\" />", Wall.IsEnabled, Wall.Player_Check, Wall.Reserved);
                 sw.WriteLine("        <Tool Name=\"Wallet\" Enable=\"{0}\" PVP=\"{1}\" Zombie_Kill=\"{2}\" Player_Kill=\"{3}\" Bank_Transfers=\"{4}\" />", Wallet.IsEnabled, Wallet.PVP, Wallet.Zombie_Kill, Wallet.Player_Kill, Wallet.Bank_Transfers);
                 sw.WriteLine("        <Tool Name=\"Wallet_Extended\" Session_Bonus=\"{0}\" Currency_Name=\"{1}\" Item_Name=\"{2}\" />", Wallet.Session_Bonus, Wallet.Currency_Name, Wallet.Item_Name);
-                sw.WriteLine("        <Tool Name=\"Watch_List\" Enable=\"{0}\" Admin_Level=\"{1}\" Delay=\"{2}\" />", WatchList.IsEnabled, WatchList.Admin_Level, WatchList.Delay);
-                sw.WriteLine("        <Tool Name=\"Waypoints\" Enable=\"{0}\" Max_Waypoints=\"{1}\" Reserved_Max_Waypoints=\"{2}\" Command_Cost=\"{3}\" Delay_Between_Uses=\"{4}\" />", Waypoints.IsEnabled, Waypoints.Max_Waypoints, Waypoints.Reserved_Max_Waypoints, Waypoints.Command_Cost, Waypoints.Delay_Between_Uses);
+                sw.WriteLine("        <Tool Name=\"Watch_List\" Enable=\"{0}\" Admin_Level=\"{1}\" Delay_minutes=\"{2}\" />", WatchList.IsEnabled, WatchList.Admin_Level, WatchList.Delay);
+                sw.WriteLine("        <Tool Name=\"Waypoints\" Enable=\"{0}\" Max_Waypoints=\"{1}\" Reserved_Max_Waypoints=\"{2}\" Command_Cost=\"{3}\" Delay_minutes=\"{4}\" />", Waypoints.IsEnabled, Waypoints.Max_Waypoints, Waypoints.Reserved_Max_Waypoints, Waypoints.Command_Cost, Waypoints.Delay_Between_Uses);
                 sw.WriteLine("        <Tool Name=\"Waypoints_Extended\" Player_Check=\"{0}\" Zombie_Check=\"{1}\" Vehicle=\"{2}\" No_POI=\"{3}\" />", Waypoints.Player_Check, Waypoints.Zombie_Check, Waypoints.Vehicle, Waypoints.No_POI);
                 sw.WriteLine("        <Tool Name=\"Web_API\" Enable=\"{0}\" IP_Address=\"{1}\" Port=\"{2}\" />", WebAPI.IsEnabled, WebAPI.BaseAddress, WebAPI.Port);
                 sw.WriteLine("        <Tool Name=\"Web_Panel\" Enable=\"{0}\" Timeout=\"{1}\" />", WebPanel.IsEnabled, WebPanel.Timeout);
@@ -4787,7 +4823,7 @@ namespace ServerTools
             ActiveTools.Exec(false);
         }
 
-        public static void UpgradeXml(XmlElement element)
+        public static void UpgradeXml(XmlElement _element)
         {
             try
             {
@@ -4805,54 +4841,60 @@ namespace ServerTools
                         return;
                     }
                     XmlNodeList nodeList = xml.DocumentElement.ChildNodes;
-                    if (nodeList != null)
+                    if (nodeList == null)
                     {
-                        for (int i = 0; i < nodeList.Count; i++)
+                        return;
+                    }
+                    for (int i = 0; i < nodeList.Count; i++)
+                    {
+                        if (nodeList[i].HasChildNodes)
                         {
-                            if (nodeList[i].HasChildNodes)
+                            XmlNodeList childNodeList = nodeList[i].ChildNodes;
+                            if (childNodeList == null)
                             {
-                                XmlNodeList childNodeList = nodeList[i].ChildNodes;
-                                if (childNodeList != null)
+                                continue;
+                            }
+                            for (int j = 0; j < childNodeList.Count; j++)
+                            {
+                                if (childNodeList[j].NodeType == XmlNodeType.Comment)
                                 {
-                                    for (int j = 0; j < childNodeList.Count; j++)
+                                    continue;
+                                }
+                                XmlElement newLine = (XmlElement)childNodeList[j];
+                                if (newLine.HasAttributes && newLine.Name == "Tool")
+                                {
+                                    XmlAttributeCollection newAttributes = newLine.Attributes;
+                                    XmlNodeList oldNodeList = _element.ChildNodes;
+                                    if (oldNodeList == null)
                                     {
-                                        if (childNodeList[j].NodeType != XmlNodeType.Comment)
+                                        continue;
+                                    }
+                                    for (int k = 0; k < oldNodeList.Count; k++)
+                                    {
+                                        if (oldNodeList[k].HasChildNodes)
                                         {
-                                            XmlElement newLine = (XmlElement)childNodeList[j];
-                                            if (newLine.HasAttributes && newLine.Name == "Tool")
+                                            XmlNodeList oldChildNodeList = oldNodeList[k].ChildNodes;
+                                            if (oldChildNodeList == null)
                                             {
-                                                XmlAttributeCollection newAttributes = newLine.Attributes;
-                                                XmlNodeList oldNodeList = element.ChildNodes;
-                                                if (oldNodeList != null)
+                                                continue;
+                                            }
+                                            for (int l = 0; l < oldChildNodeList.Count; l++)
+                                            {
+                                                if (oldChildNodeList[l].NodeType == XmlNodeType.Comment)
                                                 {
-                                                    for (int k = 0; k < oldNodeList.Count; k++)
+                                                    continue;
+                                                }
+                                                XmlElement oldLine = (XmlElement)oldChildNodeList[l];
+                                                if (oldLine.HasAttributes && oldLine.Name == "Tool" && newLine.Attributes[0].Value == oldLine.Attributes[0].Value)
+                                                {
+                                                    XmlAttributeCollection oldAttributes = oldLine.Attributes;
+                                                    for (int m = 1; m < newAttributes.Count; m++)
                                                     {
-                                                        if (oldNodeList[k].HasChildNodes)
+                                                        for (int n = 1; n < oldAttributes.Count; n++)
                                                         {
-                                                            XmlNodeList oldChildNodeList = oldNodeList[k].ChildNodes;
-                                                            if (oldChildNodeList != null)
+                                                            if (newAttributes[m] != null && oldAttributes[n] != null && newAttributes[m].Name == oldAttributes[n].Name && newAttributes[m].Value != oldAttributes[n].Value)
                                                             {
-                                                                for (int l = 0; l < oldChildNodeList.Count; l++)
-                                                                {
-                                                                    if (oldChildNodeList[l].NodeType != XmlNodeType.Comment)
-                                                                    {
-                                                                        XmlElement oldLine = (XmlElement)oldChildNodeList[l];
-                                                                        if (oldLine.HasAttributes && oldLine.Name == "Tool" && newLine.Attributes[0].Value == oldLine.Attributes[0].Value)
-                                                                        {
-                                                                            XmlAttributeCollection oldAttributes = oldLine.Attributes;
-                                                                            for (int m = 1; m < newAttributes.Count; m++)
-                                                                            {
-                                                                                for (int n = 1; n < oldAttributes.Count; n++)
-                                                                                {
-                                                                                    if (newAttributes[m] != null && oldAttributes[n] != null && newAttributes[m].Name == oldAttributes[n].Name && newAttributes[m].Value != oldAttributes[n].Value)
-                                                                                    {
-                                                                                        newAttributes[m].Value = oldAttributes[n].Value;
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
+                                                                newAttributes[m].Value = oldAttributes[n].Value;
                                                             }
                                                         }
                                                     }
@@ -4865,12 +4907,12 @@ namespace ServerTools
                         }
                     }
                     xml.Save(ConfigFilePath);
-                    Log.Out(string.Format("[SERVERTOOLS] Completed updating ServerToolsConfig.xml"));
+                    Log.Out("[SERVERTOOLS] Completed updating ServerToolsConfig.xml");
                 }
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Config.UpgradeXml: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Config.UpgradeXml: {0}", e.Message);
             }
             FileWatcher.EnableRaisingEvents = true;
             LoadXml();

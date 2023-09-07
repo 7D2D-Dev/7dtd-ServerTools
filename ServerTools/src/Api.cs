@@ -487,7 +487,7 @@ namespace ServerTools
                             Hardcore.Check(_cInfo, _player, false);
                         }
                     }
-                    EventSchedule.Schedule.Add("Bonus_" + id, DateTime.Now.AddMinutes(15));
+                    EventSchedule.AddToSchedule("Bonus_" + id, DateTime.Now.AddMinutes(15));
                 }
             }
             catch (Exception e)
@@ -526,9 +526,12 @@ namespace ServerTools
                             Hardcore.Check(_cInfo, _player, false);
                         }
                     }
-                    if (LoginNotice.IsEnabled && LoginNotice.Dict1.ContainsKey(_cInfo.PlatformId.CombinedString) || LoginNotice.Dict1.ContainsKey(id))
+                    if (LoginNotice.IsEnabled)
                     {
-                        LoginNotice.PlayerNotice(_cInfo);
+                        if ((_cInfo.PlatformId != null && LoginNotice.Dict1.ContainsKey(_cInfo.PlatformId.CombinedString)) || LoginNotice.Dict1.ContainsKey(id))
+                        {
+                            LoginNotice.PlayerNotice(_cInfo);
+                        }
                     }
                     if (Motd.IsEnabled)
                     {
@@ -577,12 +580,20 @@ namespace ServerTools
                         }
                         if (PersistentContainer.Instance.Players[id].JailRelease)
                         {
-                            PersistentContainer.Instance.Players[id].JailRelease = false;
-                            PersistentContainer.DataChange = true;
                             Vector3[] _pos = GameManager.Instance.World.GetRandomSpawnPointPositions(1);
-                            _cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageTeleportPlayer>().Setup(new Vector3(_pos[0].x, _pos[0].y + 1, _pos[0].z), null, false));
-                            Phrases.Dict.TryGetValue("Jail2", out string phrase);
-                            ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                            if (_pos.Length > 0)
+                            {
+                                PersistentContainer.Instance.Players[id].JailRelease = false;
+                                PersistentContainer.DataChange = true;
+                                _cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageTeleportPlayer>().Setup(new Vector3(_pos[0].x, _pos[0].y + 1, _pos[0].z), null, false));
+                                Phrases.Dict.TryGetValue("Jail2", out string phrase);
+                                ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                            }
+                            else
+                            {
+                                Phrases.Dict.TryGetValue("Jail12", out string phrase);
+                                ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                            }
                         }
                     }
                     if (AutoPartyInvite.IsEnabled)
@@ -593,9 +604,12 @@ namespace ServerTools
                     {
                         Event.Spawn(_cInfo);
                     }
-                    Teleportation.InsideWorld(_cInfo, _player);
-                    Teleportation.InsideBlock(_cInfo, _player);
-                    EventSchedule.Schedule.Add("Bonus_" + id, DateTime.Now.AddMinutes(15));
+                    if (_player.serverPos != null)
+                    {
+                        Teleportation.InsideWorld(_cInfo, _player);
+                        Teleportation.InsideBlock(_cInfo, _player);
+                    }
+                    EventSchedule.AddToSchedule("Bonus_" + id, DateTime.Now.AddMinutes(15));
                 }
             }
             catch (Exception e)

@@ -12,8 +12,13 @@ namespace ServerTools
         public static int Days_Before_Log_Delete = 5;
         public static string Delay = "120";
 
+        private static PlayerDataFile playerDataFile;
+        private static EntityPlayer player;
+        private static ClientInfo cInfo;
+        private static List<EntityPlayer> playerList;
         private static string EventDelay = "";
         private static DateTime time = new DateTime();
+
         private static readonly string PlayerLogFile = string.Format("PlayerLog_{0}.xml", DateTime.Today.ToString("M-d-yyyy"));
         private static readonly string PlayerLogFilePath = string.Format("{0}/Logs/PlayerLogs/{1}", API.ConfigPath, PlayerLogFile);
 
@@ -23,10 +28,7 @@ namespace ServerTools
             {
                 if (EventDelay != Delay || _reset)
                 {
-                    if (EventSchedule.Schedule.ContainsKey("PlayerLogs") && !EventSchedule.Expired.Contains("PlayerLogs"))
-                    {
-                        EventSchedule.RemoveFromSchedule("PlayerLogs");
-                    }
+                    EventSchedule.Expired.Add("PlayerLogs");
                     EventDelay = Delay;
                     if (Delay.Contains(",") && Delay.Contains(":"))
                     {
@@ -52,17 +54,17 @@ namespace ServerTools
                     }
                     else if (Delay.Contains(":"))
                     {
-                        string[] timeSplit3 = Delay.Split(':');
-                        int.TryParse(timeSplit3[0], out int hours3);
-                        int.TryParse(timeSplit3[1], out int minutes3);
-                        time = DateTime.Today.AddHours(hours3).AddMinutes(minutes3);
+                        string[] timeSplit2 = Delay.Split(':');
+                        int.TryParse(timeSplit2[0], out int hours2);
+                        int.TryParse(timeSplit2[1], out int minutes2);
+                        time = DateTime.Today.AddHours(hours2).AddMinutes(minutes2);
                         if (DateTime.Now < time)
                         {
                             EventSchedule.AddToSchedule("PlayerLogs", time);
                         }
                         else
                         {
-                            time = DateTime.Today.AddDays(1).AddHours(hours3).AddMinutes(minutes3);
+                            time = DateTime.Today.AddDays(1).AddHours(hours2).AddMinutes(minutes2);
                             EventSchedule.AddToSchedule("PlayerLogs", time);
                         }
                         return;
@@ -85,7 +87,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in PlayerLogs.SetDelay: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in PlayerLogs.SetDelay: {0}", e.Message);
             }
         }
 
@@ -113,96 +115,105 @@ namespace ServerTools
                         }
                         catch (XmlException e)
                         {
-                            Log.Error(string.Format("[SERVERTOOLS] Player logs failed loading {0}: {1}", PlayerLogFile, e.Message));
+                            Log.Error("[SERVERTOOLS] Player logs failed loading {0}: {1}", PlayerLogFile, e.Message);
                             return;
                         }
                         string dt = DateTime.Now.ToString("HH:mm:ss");
-                        PlayerDataFile playerDataFile;
-                        EntityPlayer player;
-                        ClientInfo cInfo;
-                        List<EntityPlayer> playerList = GameManager.Instance.World.Players.list;
+                        int day = GameUtils.WorldTimeToDays(GameManager.Instance.World.GetWorldTime());
+                        int hour = GameUtils.WorldTimeToHours(GameManager.Instance.World.GetWorldTime());
+                        playerList = GameManager.Instance.World.Players.list;
+                        if (playerList == null || playerList.Count < 1)
+                        {
+                            return;
+                        }
                         for (int i = 0; i < playerList.Count; i++)
                         {
                             player = playerList[i];
-                            if (player != null)
+                            if (player == null)
                             {
-                                cInfo = GeneralOperations.GetClientInfoFromEntityId(player.entityId);
-                                if (cInfo != null)
+                                continue;
+                            }
+                            cInfo = GeneralOperations.GetClientInfoFromEntityId(player.entityId);
+                            if (cInfo == null)
+                            {
+                                continue;
+                            }
+                            playerDataFile = cInfo.latestPlayerData;
+                            if (playerDataFile == null)
+                            {
+                                continue;
+                            }
+                            XmlNode playerNode = null;
+                            XmlNodeList playerNodeList = xmlDoc.GetElementsByTagName("Player", "Id " + cInfo.CrossplatformId.CombinedString);
+                            if (playerNodeList == null || playerNodeList.Count == 0)
+                            {
+                                playerNode = xmlDoc.CreateNode(XmlNodeType.Element, "Player", "Id " + cInfo.CrossplatformId.CombinedString);
+                                xmlDoc.DocumentElement.AppendChild(playerNode);
+                            }
+                            else
+                            {
+                                playerNode = playerNodeList[0];
+                            }
+                            if (playerNode == null)
+                            {
+                                continue;
+                            }
+                            if (player.IsSpawned())
+                            {
+                                var x = (int)player.position.x;
+                                var y = (int)player.position.y;
+                                var z = (int)player.position.z;
+                                double regionX, regionZ;
+                                regionX = Math.Truncate(player.position.x / 512);
+                                if (player.position.x < 0)
                                 {
-                                    playerDataFile = cInfo.latestPlayerData;
-                                    if (playerDataFile != null)
-                                    {
-                                        XmlNode playerNode = null;
-                                        XmlNodeList playerNodeList = xmlDoc.GetElementsByTagName("Player", "Id " + cInfo.CrossplatformId.CombinedString);
-                                        if (playerNodeList == null || playerNodeList.Count == 0)
-                                        {
-                                            playerNode = xmlDoc.CreateNode(XmlNodeType.Element, "Player", "Id " + cInfo.CrossplatformId.CombinedString);
-                                            xmlDoc.DocumentElement.AppendChild(playerNode);
-                                        }
-                                        else
-                                        {
-                                            playerNode = playerNodeList[0];
-                                        }
-                                        if (playerNode != null)
-                                        {
-                                            if (player.IsSpawned())
-                                            {
-                                                var x = (int)player.position.x;
-                                                var y = (int)player.position.y;
-                                                var z = (int)player.position.z;
-                                                double regionX, regionZ;
-                                                regionX = Math.Truncate(player.position.x / 512);
-                                                if (player.position.x < 0)
-                                                {
-                                                    regionX -= 1;
-                                                }
-                                                regionZ = Math.Truncate(player.position.z / 512);
-                                                if (player.position.z < 0)
-                                                {
-                                                    regionZ -= 1;
-                                                }
-                                                string ip = cInfo.ip;
-                                                XmlNode newEntry = xmlDoc.CreateTextNode("\n");
-                                                playerNode.AppendChild(newEntry);
-                                                newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: EntityId {1} / Name {2} / IP Address {3} / Position {4} X {5} Y {6} Z / RegionFile r.{7}.{8}.7rg\n", dt, cInfo.entityId, cInfo.playerName, ip, x, y, z, regionX, regionZ));
-                                                playerNode.AppendChild(newEntry);
-                                                newEntry = xmlDoc.CreateTextNode(string.Format("       Health {0} / Stamina {1} / ZombieKills {2} / PlayerKills {3} / PlayerLevel {4} / Deaths {5}\n", (int)player.Stats.Health.Value, (int)player.Stats.Stamina.Value, player.KilledZombies, player.KilledPlayers, player.Progression.GetLevel(), player.Died));
-                                                playerNode.AppendChild(newEntry);
-                                                newEntry = xmlDoc.CreateTextNode("       Belt:\n");
-                                                playerNode.AppendChild(newEntry);
-                                                playerNode = PrintInv(playerDataFile.inventory, playerNode, xmlDoc);
-                                                newEntry = xmlDoc.CreateTextNode("       Backpack:\n");
-                                                playerNode.AppendChild(newEntry);
-                                                playerNode = PrintInv(playerDataFile.bag, playerNode, xmlDoc);
-                                                newEntry = xmlDoc.CreateTextNode("       Equipment:\n");
-                                                playerNode.AppendChild(newEntry);
-                                                playerNode = PrintEquipment(playerDataFile.equipment, playerNode, xmlDoc);
-                                                if (Vehicle && player.AttachedToEntity != null)
-                                                {
-                                                    newEntry = xmlDoc.CreateTextNode("       Vehicle:\n");
-                                                    playerNode.AppendChild(newEntry);
-                                                    playerNode = PrintVehicle(player.AttachedToEntity.entityId, playerNode, xmlDoc);
-                                                }
-                                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
-                                                playerNode.AppendChild(newEntry);
-                                            }
-                                            else if (!player.IsDead() && !player.IsSpawned())
-                                            {
-                                                XmlNode newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: EntityId {1} / Name {2} / Player has not spawned\n", dt, cInfo.entityId, cInfo.playerName));
-                                                playerNode.AppendChild(newEntry);
-                                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
-                                                playerNode.AppendChild(newEntry);
-                                            }
-                                            else if (player.IsDead())
-                                            {
-                                                XmlNode newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: EntityId {1} / Name {2} / Player is dead\n", dt, cInfo.entityId, cInfo.playerName));
-                                                playerNode.AppendChild(newEntry);
-                                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
-                                                playerNode.AppendChild(newEntry);
-                                            }
-                                        }
-                                    }
+                                    regionX -= 1;
                                 }
+                                regionZ = Math.Truncate(player.position.z / 512);
+                                if (player.position.z < 0)
+                                {
+                                    regionZ -= 1;
+                                }
+                                string ip = cInfo.ip;
+                                XmlNode newEntry = xmlDoc.CreateTextNode("\n");
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: '{1}' '{2}' @ day '{3}' hour '{4}'\n", dt, cInfo.PlatformId.CombinedString, cInfo.CrossplatformId.CombinedString, day, hour));
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode(string.Format("       EntityId {0} / Name {1} / IP Address {2} / Position {3} X {4} Y {5} Z / RegionFile r.{6}.{7}.7rg\n", cInfo.entityId, cInfo.playerName, ip, x, y, z, regionX, regionZ));
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode(string.Format("       Health {0} / Stamina {1} / ZombieKills {2} / PlayerKills {3} / PlayerLevel {4} / Deaths {5}\n", (int)player.Stats.Health.Value, (int)player.Stats.Stamina.Value, player.KilledZombies, player.KilledPlayers, player.Progression.GetLevel(), player.Died));
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode("       Belt:\n");
+                                playerNode.AppendChild(newEntry);
+                                playerNode = PrintInv(playerDataFile.inventory, playerNode, xmlDoc);
+                                newEntry = xmlDoc.CreateTextNode("       Backpack:\n");
+                                playerNode.AppendChild(newEntry);
+                                playerNode = PrintInv(playerDataFile.bag, playerNode, xmlDoc);
+                                newEntry = xmlDoc.CreateTextNode("       Equipment:\n");
+                                playerNode.AppendChild(newEntry);
+                                playerNode = PrintEquipment(playerDataFile.equipment, playerNode, xmlDoc);
+                                if (Vehicle && player.AttachedToEntity != null)
+                                {
+                                    newEntry = xmlDoc.CreateTextNode("       Vehicle:\n");
+                                    playerNode.AppendChild(newEntry);
+                                    playerNode = PrintVehicle(player.AttachedToEntity.entityId, playerNode, xmlDoc);
+                                }
+                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
+                                playerNode.AppendChild(newEntry);
+                            }
+                            else if (!player.IsDead())
+                            {
+                                XmlNode newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: EntityId {1} / Name {2} / Player has not spawned\n", dt, cInfo.entityId, cInfo.playerName));
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
+                                playerNode.AppendChild(newEntry);
+                            }
+                            else
+                            {
+                                XmlNode newEntry = xmlDoc.CreateTextNode(string.Format("       {0}: EntityId {1} / Name {2} / Player is dead\n", dt, cInfo.entityId, cInfo.playerName));
+                                playerNode.AppendChild(newEntry);
+                                newEntry = xmlDoc.CreateTextNode("       ----------------\n");
+                                playerNode.AppendChild(newEntry);
                             }
                         }
                         xmlDoc.Save(PlayerLogFilePath);
@@ -211,7 +222,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in PlayerLogs.Exec: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in PlayerLogs.Exec: {0}", e.Message);
             }
         }
 

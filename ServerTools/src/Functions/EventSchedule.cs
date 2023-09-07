@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace ServerTools
@@ -6,34 +7,34 @@ namespace ServerTools
     public class EventSchedule
     {
         public static Dictionary<string, DateTime> Schedule = new Dictionary<string, DateTime>();
-        public static Dictionary<string, DateTime> NewEntries = new Dictionary<string, DateTime>();
-        public static List<string> Expired = new List<string>();
+        public static ConcurrentDictionary<string, DateTime> NewEntries = new ConcurrentDictionary<string, DateTime>();
+        public static ConcurrentBag<string> Expired = new ConcurrentBag<string>();
 
         private static DateTime dateTime;
         private static string[] split;
+        private static KeyValuePair<string, DateTime>[] Entries;
 
         public static void Exec()
         {
             try
             {
-                if (Expired.Count > 0)
+                while (Expired.Count > 0)
                 {
-                    for (int i = 0; i < Expired.Count; i++)
+                    if (Expired.TryTake(out string entry))
                     {
-                        RemoveFromSchedule(Expired[i]);
+                        RemoveFromSchedule(entry);
                     }
-                    Expired.Clear();
                 }
                 if (NewEntries.Count > 0)
                 {
-                    foreach (var entry in NewEntries)
+                    Entries = NewEntries.ToArray();
+                    for (int i = 0; i < Entries.Length; i++)
                     {
-                        if (!Schedule.ContainsKey(entry.Key))
+                        if (Entries[i].Key != null && !Schedule.ContainsKey(Entries[i].Key) && NewEntries.TryRemove(Entries[i].Key, out DateTime date))
                         {
-                            Schedule.Add(entry.Key, entry.Value);
+                            Schedule.Add(Entries[i].Key, date);
                         }
                     }
-                    NewEntries.Clear();
                 }
                 if (Schedule.Count > 0)
                 {
@@ -45,57 +46,58 @@ namespace ServerTools
                             case "AutoBackup":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
+                                    Expired.Add(entry.Key);
+                                    try
                                     {
-                                        Expired.Add(entry.Key);
+                                        AutoBackup.Exec();
                                     }
-                                    AutoBackup.Exec();
-                                    AutoBackup.SetDelay(true);
+                                    finally
+                                    {
+                                        AutoBackup.SetDelay(true);
+                                    }
                                 }
                                 break;
                             case "AutoSaveWorld":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
+                                    Expired.Add(entry.Key);
+                                    try
                                     {
-                                        Expired.Add(entry.Key);
+                                        AutoSaveWorld.Save();
                                     }
-                                    AutoSaveWorld.Save();
-                                    AutoSaveWorld.SetDelay(true);
+                                    finally
+                                    {
+                                        AutoSaveWorld.SetDelay(true);
+                                    }
                                 }
                                 break;
                             case "Bloodmoon":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
+                                    Expired.Add(entry.Key);
+                                    try
                                     {
-                                        Expired.Add(entry.Key);
+                                        Bloodmoon.StatusCheck();
                                     }
-                                    Bloodmoon.StatusCheck();
-                                    Bloodmoon.SetDelay(true);
+                                    finally
+                                    {
+                                        Bloodmoon.SetDelay(true);
+                                    }
                                 }
                                 break;
                             case "Bonus":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     split = entry.Key.Split('_');
-                                    if (GeneralOperations.SessionBonus(split[1]))
-                                    {
-                                        AddToSchedule(entry.Key, dateTime.AddMinutes(15));
-                                    }
+                                    GeneralOperations.SessionBonus(split[1]);
+                                    AddToSchedule(entry.Key, dateTime.AddMinutes(15));
                                 }
                                 break;
                             case "BreakReminder":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         BreakReminder.Exec();
@@ -106,16 +108,30 @@ namespace ServerTools
                                     }
                                 }
                                 break;
+                            case "Hordes":
+                                if (dateTime >= entry.Value)
+                                {
+                                    Expired.Add(entry.Key);
+                                    try
+                                    {
+                                        Hordes.Exec();
+                                    }
+                                    finally
+                                    {
+                                        Hordes.SetDelay(true);
+                                    }
+                                }
+                                break;
                             case "InfoTicker":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
-                                        InfoTicker.Exec();
+                                        ThreadManager.AddSingleTask(delegate (ThreadManager.TaskInfo _taskInfo)
+                                        {
+                                            InfoTicker.Exec();
+                                        });
                                     }
                                     finally
                                     {
@@ -126,10 +142,7 @@ namespace ServerTools
                             case "Lottery":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         Lottery.DrawLottery();
@@ -143,10 +156,7 @@ namespace ServerTools
                             case "NightAlert":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         NightAlert.Exec();
@@ -160,13 +170,13 @@ namespace ServerTools
                             case "PlayerLogs":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
-                                        PlayerLogs.Exec();
+                                        ThreadManager.AddSingleTask(delegate (ThreadManager.TaskInfo _taskInfo)
+                                        {
+                                            PlayerLogs.Exec();
+                                        });
                                     }
                                     finally
                                     {
@@ -177,10 +187,7 @@ namespace ServerTools
                             case "RealWorldTime":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         RealWorldTime.Exec();
@@ -194,15 +201,12 @@ namespace ServerTools
                             case "Shutdown":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         Shutdown.PrepareShutdown();
                                     }
-                                    catch 
+                                    catch
                                     {
                                         Log.Warning("[SERVERTOOLS] Failed to run the scheduled shutdown");
                                     }
@@ -211,10 +215,7 @@ namespace ServerTools
                             case "WatchList":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         WatchList.Exec();
@@ -228,10 +229,7 @@ namespace ServerTools
                             case "Zones":
                                 if (dateTime >= entry.Value)
                                 {
-                                    if (!Expired.Contains(entry.Key))
-                                    {
-                                        Expired.Add(entry.Key);
-                                    }
+                                    Expired.Add(entry.Key);
                                     try
                                     {
                                         Zones.ReminderExec();
@@ -256,7 +254,10 @@ namespace ServerTools
         {
             if (!NewEntries.ContainsKey(_toolName))
             {
-                NewEntries.Add(_toolName, _time);
+                if (!NewEntries.TryAdd(_toolName, _time))
+                {
+                    Timers.AddEventToSchedule(_toolName, _time);
+                }
             }
         }
 

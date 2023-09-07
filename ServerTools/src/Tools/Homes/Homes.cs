@@ -9,8 +9,10 @@ namespace ServerTools
     {
         public static bool IsEnabled = false, Player_Check = false, Zombie_Check = false, Vehicle_Check = false, Return = false;
         public static int Delay_Between_Uses = 0, Max_Homes = 2, Reserved_Max_Homes = 4, Command_Cost = 0;
-        public static string Command_home = "home", Command_fhome = "fhome", Command_save = "home save", Command_delete = "home del", Command_go = "go home",
-            Command_set = "sethome";
+        public static string Command_go_home = "go home", Command_home = "home", Command_ho = "ho",
+            Command_fhome = "fhome", Command_fho = "fho",
+            Command_sethome = "sethome", Command_home_save = "home save", Command_hs = "hs",
+            Command_home_delete = "home delete", Command_hd = "hd";
         public static Dictionary<int, DateTime> Invite = new Dictionary<int, DateTime>();
         public static Dictionary<int, string> FriendPosition = new Dictionary<int, string>();
 
@@ -159,7 +161,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.TeleDelay: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.TeleDelay: {0}", e.Message);
             }
         }
 
@@ -184,7 +186,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.Time: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.Time: {0}", e.Message);
             }
         }
 
@@ -193,49 +195,50 @@ namespace ServerTools
             try
             {
                 EntityPlayer player = GeneralOperations.GetEntityPlayer(_cInfo.entityId);
-                if (player != null)
+                if (player == null)
                 {
-                    if (Zombie_Check)
+                    return;
+                }
+                if (Zombie_Check)
+                {
+                    if (Teleportation.ZCheck(_cInfo, player))
                     {
-                        if (Teleportation.ZCheck(_cInfo, player))
-                        {
-                            Phrases.Dict.TryGetValue("Teleport1", out string phrase);
-                            ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
-                            return;
-                        }
+                        Phrases.Dict.TryGetValue("Teleport1", out string phrase);
+                        ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                        return;
                     }
-                    if (Player_Check)
+                }
+                if (Player_Check)
+                {
+                    if (Teleportation.PCheck(_cInfo, player))
                     {
-                        if (Teleportation.PCheck(_cInfo, player))
-                        {
-                            Phrases.Dict.TryGetValue("Teleport2", out string phrase);
-                            ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
-                            return;
-                        }
+                        Phrases.Dict.TryGetValue("Teleport2", out string phrase);
+                        ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                        return;
                     }
-                    if (Vehicle_Check)
+                }
+                if (Vehicle_Check)
+                {
+                    Entity attachedEntity = player.AttachedToEntity;
+                    if (attachedEntity != null)
                     {
-                        Entity attachedEntity = player.AttachedToEntity;
-                        if (attachedEntity != null)
-                        {
-                            Phrases.Dict.TryGetValue("Teleport3", out string phrase);
-                            ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
-                            return;
-                        }
+                        Phrases.Dict.TryGetValue("Teleport3", out string phrase);
+                        ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                        return;
                     }
-                    if (Wallet.IsEnabled && Command_Cost > 0)
-                    {
-                        CommandCost(_cInfo, _homeName, player.position, _friends);
-                    }
-                    else
-                    {
-                        Exec(_cInfo, _homeName, player.position, _friends);
-                    }
+                }
+                if (Command_Cost > 0)
+                {
+                    CommandCost(_cInfo, _homeName, player.position, _friends);
+                }
+                else
+                {
+                    Exec(_cInfo, _homeName, player.position, _friends);
                 }
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.Checks: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.Checks: {0}", e.Message);
             }
         }
 
@@ -243,17 +246,34 @@ namespace ServerTools
         {
             try
             {
-                int currency = 0;
+                int currency = 0, bankCurrency = 0, cost = Command_Cost;
                 if (Wallet.IsEnabled)
                 {
                     currency = Wallet.GetCurrency(_cInfo.CrossplatformId.CombinedString);
                 }
                 if (Bank.IsEnabled && Bank.Direct_Payment)
                 {
-                    currency += PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].Bank;
+                    bankCurrency = PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].Bank;
                 }
-                if (currency >= Command_Cost)
+                if (currency + bankCurrency >= cost)
                 {
+                    if (currency > 0)
+                    {
+                        if (currency < cost)
+                        {
+                            Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, currency);
+                            cost -= currency;
+                            Bank.SubtractCurrencyFromBank(_cInfo.CrossplatformId.CombinedString, cost);
+                        }
+                        else
+                        {
+                            Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, cost);
+                        }
+                    }
+                    else
+                    {
+                        Bank.SubtractCurrencyFromBank(_cInfo.CrossplatformId.CombinedString, cost);
+                    }
                     Exec(_cInfo, _homeName, _position, _friends);
                 }
                 else
@@ -265,7 +285,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.CommandCost: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.CommandCost: {0}", e.Message);
             }
         }
 
@@ -281,17 +301,23 @@ namespace ServerTools
                         int.TryParse(cords[0], out int x);
                         int.TryParse(cords[1], out int y);
                         int.TryParse(cords[2], out int z);
-                        if (GeneralOperations.ClaimedBySelfOrAlly(_cInfo, new Vector3i(x, y, z)))
+                        EnumLandClaimOwner claimOwner;
+                        Chunk chunk = (Chunk)GameManager.Instance.World.GetChunkFromWorldPos(x, y, z);
+                        if (chunk == null)
+                        {
+                            claimOwner = EnumLandClaimOwner.Self;
+                        }
+                        else
+                        {
+                            claimOwner = GeneralOperations.ClaimedByWho(_cInfo.CrossplatformId, new Vector3i(x, y, z));
+                        }
+                        if (claimOwner == EnumLandClaimOwner.Self || claimOwner == EnumLandClaimOwner.Ally)
                         {
                             if (_friends)
                             {
                                 FriendInvite(_cInfo, _position, homePos);
                             }
                             _cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageTeleportPlayer>().Setup(new Vector3(x, y, z), null, false));
-                            if (Command_Cost >= 1 && Wallet.IsEnabled)
-                            {
-                                Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, Command_Cost);
-                            }
                             PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].LastHome = DateTime.Now;
                             PersistentContainer.DataChange = true;
                         }
@@ -317,7 +343,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.Exec: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.Exec: {0}", e.Message);
             }
         }
 
@@ -382,7 +408,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.ReservedCheck: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.ReservedCheck: {0}", e.Message);
             }
         }
 
@@ -460,7 +486,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.SaveHome: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.SaveHome: {0}", e.Message);
             }
         }
 
@@ -484,7 +510,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.DelHome: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.DelHome: {0}", e.Message);
             }
         }
 
@@ -512,7 +538,7 @@ namespace ServerTools
                                     Phrases.Dict.TryGetValue("Homes14", out string phrase);
                                     phrase = phrase.Replace("{PlayerName}", _cInfo.playerName);
                                     phrase = phrase.Replace("{Command_Prefix1}", ChatHook.Chat_Command_Prefix1);
-                                    phrase = phrase.Replace("{Command_go}", Command_go);
+                                    phrase = phrase.Replace("{Command_go_home}", Command_go_home);
                                     ChatHook.ChatMessage(cInfo2, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
                                     Phrases.Dict.TryGetValue("Homes15", out phrase);
                                     phrase = phrase.Replace("{PlayerName}", cInfo2.playerName);
@@ -532,7 +558,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.FriendInvite: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.FriendInvite: {0}", e.Message);
             }
         }
 
@@ -569,7 +595,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Homes.FriendHome: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Homes.FriendHome: {0}", e.Message);
             }
         }
     }

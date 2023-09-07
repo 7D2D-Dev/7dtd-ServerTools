@@ -153,6 +153,7 @@ namespace ServerTools
                 FileWatcher.EnableRaisingEvents = false;
                 using (StreamWriter sw = new StreamWriter(FilePath, false, Encoding.UTF8))
                 {
+                    sw.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
                     sw.WriteLine("<Travel>");
                     sw.WriteLine(string.Format("    <!-- <Version=\"{0}\" /> -->", Config.Version));
                     sw.WriteLine("    <!-- <Location Name=\"zone1\" Corner1=\"0,100,0\" Corner2=\"10,100,10\" Destination=\"-100,-1,-100\" /> -->");
@@ -261,7 +262,7 @@ namespace ServerTools
             {
                 if (_timepassed >= _delay)
                 {
-                    if (Command_Cost >= 1 && Wallet.IsEnabled)
+                    if (Command_Cost > 0)
                     {
                         CommandCost(_cInfo);
                     }
@@ -291,17 +292,34 @@ namespace ServerTools
         {
             try
             {
-                int currency = 0;
+                int currency = 0, bankCurrency = 0, cost = Command_Cost;
                 if (Wallet.IsEnabled)
                 {
                     currency = Wallet.GetCurrency(_cInfo.CrossplatformId.CombinedString);
                 }
                 if (Bank.IsEnabled && Bank.Direct_Payment)
                 {
-                    currency += PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].Bank;
+                    bankCurrency = PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].Bank;
                 }
-                if (currency >= Command_Cost)
+                if (currency + bankCurrency >= cost)
                 {
+                    if (currency > 0)
+                    {
+                        if (currency < cost)
+                        {
+                            Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, currency);
+                            cost -= currency;
+                            Bank.SubtractCurrencyFromBank(_cInfo.CrossplatformId.CombinedString, cost);
+                        }
+                        else
+                        {
+                            Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, cost);
+                        }
+                    }
+                    else
+                    {
+                        Bank.SubtractCurrencyFromBank(_cInfo.CrossplatformId.CombinedString, cost);
+                    }
                     Tele(_cInfo);
                 }
                 else
@@ -360,10 +378,6 @@ namespace ServerTools
                                 int.TryParse(destination[1], out int destinationY);
                                 int.TryParse(destination[2], out int destinationZ);
                                 _cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageTeleportPlayer>().Setup(new Vector3(destinationX, destinationY, destinationZ), null, false));
-                                if (Command_Cost >= 1 && Wallet.IsEnabled)
-                                {
-                                    Wallet.RemoveCurrency(_cInfo.CrossplatformId.CombinedString, Command_Cost);
-                                }
                                 PersistentContainer.Instance.Players[_cInfo.CrossplatformId.CombinedString].LastTravel = DateTime.Now;
                                 PersistentContainer.DataChange = true;
                                 Phrases.Dict.TryGetValue("Travel1", out string phrase);
@@ -392,6 +406,7 @@ namespace ServerTools
                 File.Delete(FilePath);
                 using (StreamWriter sw = new StreamWriter(FilePath, false, Encoding.UTF8))
                 {
+                    sw.WriteLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
                     sw.WriteLine("<Travel>");
                     sw.WriteLine("    <!-- <Version=\"{0}\" /> -->", Config.Version);
                     sw.WriteLine("    <!-- <Location Name=\"zone1\" Corner1=\"0,100,0\" Corner2=\"10,100,10\" Destination=\"-100,-1,-100\" /> -->");

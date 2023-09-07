@@ -15,10 +15,7 @@ namespace ServerTools
         {
             if (EventDelay != Delay || _loading)
             {
-                if (EventSchedule.Schedule.ContainsKey("AutoSaveWorld") && !EventSchedule.Expired.Contains("AutoSaveWorld"))
-                {
-                    EventSchedule.RemoveFromSchedule("AutoSaveWorld");
-                }
+                EventSchedule.Expired.Add("AutoSaveWorld");
                 EventDelay = Delay;
                 if (Delay.Contains(",") && Delay.Contains(":"))
                 {
@@ -44,17 +41,17 @@ namespace ServerTools
                 }
                 else if (Delay.Contains(":"))
                 {
-                    string[] timeSplit3 = Delay.Split(':');
-                    int.TryParse(timeSplit3[0], out int hours3);
-                    int.TryParse(timeSplit3[1], out int minutes3);
-                    time = DateTime.Today.AddHours(hours3).AddMinutes(minutes3);
+                    string[] timeSplit2 = Delay.Split(':');
+                    int.TryParse(timeSplit2[0], out int hours2);
+                    int.TryParse(timeSplit2[1], out int minutes2);
+                    time = DateTime.Today.AddHours(hours2).AddMinutes(minutes2);
                     if (DateTime.Now < time)
                     {
                         EventSchedule.AddToSchedule("AutoSaveWorld", time);
                     }
                     else
                     {
-                        time = DateTime.Today.AddDays(1).AddHours(hours3).AddMinutes(minutes3);
+                        time = DateTime.Today.AddDays(1).AddHours(hours2).AddMinutes(minutes2);
                         EventSchedule.AddToSchedule("AutoSaveWorld", time);
                     }
                     return;

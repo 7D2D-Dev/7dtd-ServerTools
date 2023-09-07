@@ -1,6 +1,4 @@
-﻿
-
-using System;
+﻿using System;
 
 namespace ServerTools
 {
@@ -16,10 +14,7 @@ namespace ServerTools
         {
             if (EventDelay != Delay || _loading)
             {
-                if (EventSchedule.Schedule.ContainsKey("BreakReminder") && !EventSchedule.Expired.Contains("BreakReminder"))
-                {
-                    EventSchedule.RemoveFromSchedule("BreakReminder");
-                }
+                EventSchedule.Expired.Add("BreakReminder");
                 EventDelay = Delay;
                 if (Delay.Contains(",") && Delay.Contains(":"))
                 {
@@ -45,17 +40,17 @@ namespace ServerTools
                 }
                 else if (Delay.Contains(":"))
                 {
-                    string[] timeSplit3 = Delay.Split(':');
-                    int.TryParse(timeSplit3[0], out int hours3);
-                    int.TryParse(timeSplit3[1], out int minutes3);
-                    time = DateTime.Today.AddHours(hours3).AddMinutes(minutes3);
+                    string[] timeSplit2 = Delay.Split(':');
+                    int.TryParse(timeSplit2[0], out int hours2);
+                    int.TryParse(timeSplit2[1], out int minutes2);
+                    time = DateTime.Today.AddHours(hours2).AddMinutes(minutes2);
                     if (DateTime.Now < time)
                     {
                         EventSchedule.AddToSchedule("BreakReminder", time);
                     }
                     else
                     {
-                        time = DateTime.Today.AddDays(1).AddHours(hours3).AddMinutes(minutes3);
+                        time = DateTime.Today.AddDays(1).AddHours(hours2).AddMinutes(minutes2);
                         EventSchedule.AddToSchedule("BreakReminder", time);
                     }
                     return;
@@ -69,8 +64,8 @@ namespace ServerTools
                     }
                     else
                     {
-                        Log.Out(string.Format("[SERVERTOOLS] Invalid Break_Time detected. Use a single integer, 24h time or multiple 24h time entries"));
-                        Log.Out(string.Format("[SERVERTOOLS] Example: 120 or 03:00 or 03:00, 06:00, 09:00"));
+                        Log.Out("[SERVERTOOLS] Invalid Break_Time detected. Use a single integer, 24h time or multiple 24h time entries");
+                        Log.Out("[SERVERTOOLS] Example: 120 or 03:00 or 03:00, 06:00, 09:00");
                     }
                     return;
                 }

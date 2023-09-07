@@ -9,8 +9,8 @@ namespace ServerTools
 {
     class Bank
     {
-        public static bool IsEnabled = false, Inside_Claim = false, Player_Transfers = false, Direct_Deposit = false, Deposit_Message = false,
-            Direct_Payment = false;
+        public static bool IsEnabled = false, Inside_Claim = false, Player_Transfers = false, Direct_Deposit = false, Direct_Payment = false,
+            Deposit_Message = false;
         public static string Command_bank = "bank", Command_deposit = "deposit", Command_withdraw = "withdraw", Command_transfer = "transfer";
         public static int Deposit_Fee_Percent = 5;
 
@@ -55,6 +55,13 @@ namespace ServerTools
                     sw.Flush();
                     sw.Close();
                 }
+                if (Deposit_Message)
+                {
+                    Phrases.Dict.TryGetValue("Bank17", out string phrase);
+                    phrase = phrase.Replace("{Value}", _amount.ToString());
+                    phrase = phrase.Replace("{CoinName}", Wallet.Currency_Name);
+                    cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageShowToolbeltMessage>().Setup(phrase, string.Empty));
+                }
             }
         }
 
@@ -78,6 +85,9 @@ namespace ServerTools
                         sw.Flush();
                         sw.Close();
                     }
+                    Phrases.Dict.TryGetValue("Bank19", out string phrase);
+                    phrase = phrase.Replace("{Value}", _amount.ToString());
+                    cInfo.SendPackage(NetPackageManager.GetPackage<NetPackageShowToolbeltMessage>().Setup(phrase, string.Empty));
                 }
                 return true;
             }
@@ -145,7 +155,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Bank.CurrentBankAndId: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Bank.CurrentBankAndId: {0}", e.Message);
             }
         }
 
@@ -177,7 +187,7 @@ namespace ServerTools
             return 0;
         }
 
-        public static void CheckLocation(ClientInfo _cInfo, string _amount, bool _outbound)
+        public static void CheckLocation(ClientInfo _cInfo, string _amount, bool _deposit)
         {
             try
             {
@@ -195,14 +205,15 @@ namespace ServerTools
                     Vector3 position = player.GetPosition();
                     Vector3i vec3i = new Vector3i((int)position.x, (int)position.y, (int)position.z);
 
-                    if (GeneralOperations.ClaimedByWho(_cInfo.CrossplatformId, vec3i) == EnumLandClaimOwner.None)
+                    if (GeneralOperations.ClaimedByWho(_cInfo.CrossplatformId, vec3i) != EnumLandClaimOwner.Self && 
+                        GeneralOperations.ClaimedByWho(_cInfo.CrossplatformId, vec3i) != EnumLandClaimOwner.Ally)
                     {
                         Phrases.Dict.TryGetValue("Bank2", out string phrase);
                         ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
                         return;
                     }
                 }
-                if (_outbound)
+                if (_deposit)
                 {
                     BagToBank(_cInfo, _amount);
                     return;
@@ -212,7 +223,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Bank.CheckLocation: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Bank.CheckLocation: {0}", e.Message);
             }
         }
 
@@ -289,7 +300,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Bank.BagToBank: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Bank.BagToBank: {0}", e.Message);
             }
         }
 
@@ -367,7 +378,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Bank.BankToBag: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Bank.BankToBag: {0}", e.Message);
             }
         }
 
@@ -449,7 +460,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Bank.Transfer: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Bank.Transfer: {0}", e.Message);
             }
         }
     }

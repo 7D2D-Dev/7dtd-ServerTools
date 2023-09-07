@@ -12,17 +12,14 @@ namespace ServerTools
         public static string Command_shutdown = "shutdown", Time = "240";
 
         private static string EventDelay = "";
-        private static DateTime time;
 
         public static void SetDelay(bool _loading)
         {
             if (EventDelay != Time || _loading)
             {
-                if (EventSchedule.Schedule.ContainsKey("Shutdown") && !EventSchedule.Expired.Contains("Shutdown"))
-                {
-                    EventSchedule.RemoveFromSchedule("Shutdown");
-                }
+                EventSchedule.Expired.Add("Shutdown");
                 EventDelay = Time;
+                DateTime time;
                 if (Time.Contains(",") && Time.Contains(":"))
                 {
                     string[] times = Time.Split(',');
@@ -47,19 +44,21 @@ namespace ServerTools
                 }
                 else if (Time.Contains(":"))
                 {
-                    string[] timeSplit3 = Time.Split(':');
-                    int.TryParse(timeSplit3[0], out int hours3);
-                    int.TryParse(timeSplit3[1], out int minutes3);
-                    time = DateTime.Today.AddHours(hours3).AddMinutes(minutes3);
+                    string[] timeSplit2 = Time.Split(':');
+                    int.TryParse(timeSplit2[0], out int hours2);
+                    int.TryParse(timeSplit2[1], out int minutes2);
+                    time = DateTime.Today.AddHours(hours2).AddMinutes(minutes2);
                     if (DateTime.Now < time)
                     {
                         EventSchedule.AddToSchedule("Shutdown", time);
+                        return;
                     }
                     else
                     {
-                        time = DateTime.Today.AddDays(1).AddHours(hours3).AddMinutes(minutes3);
+                        time = DateTime.Today.AddDays(1).AddHours(hours2).AddMinutes(minutes2);
                         EventSchedule.AddToSchedule("Shutdown", time);
                     }
+                    return;
                 }
                 else
                 {
@@ -73,6 +72,7 @@ namespace ServerTools
                         Log.Out("[SERVERTOOLS] Invalid Shutdown Time detected. Use a single integer, 24h time or multiple 24h time entries");
                         Log.Out("[SERVERTOOLS] Example: 120 or 03:00 or 03:00, 06:00, 09:00");
                     }
+                    return;
                 }
             }
         }
@@ -82,7 +82,7 @@ namespace ServerTools
             if (GeneralOperations.IsBloodmoon() && !Interrupt_Bloodmoon)
             {
                 DateTime time = DateTime.Now.AddMinutes(10);
-                EventSchedule.Schedule.Add("Shutdown", time);
+                EventSchedule.AddToSchedule("Shutdown", time);
                 if (Event.Open && !Event.OperatorWarned)
                 {
                     ClientInfo cInfo = GeneralOperations.GetClientInfoFromNameOrId(Event.Operator);
@@ -130,7 +130,7 @@ namespace ServerTools
             if (GeneralOperations.IsBloodmoon() && !Interrupt_Bloodmoon)
             {
                 DateTime time = DateTime.Now.AddMinutes(10);
-                EventSchedule.Schedule.Add("Shutdown", time);
+                EventSchedule.AddToSchedule("Shutdown", time);
                 if (Event.Open && !Event.OperatorWarned)
                 {
                     ClientInfo cInfo = GeneralOperations.GetClientInfoFromNameOrId(Event.Operator);
@@ -208,10 +208,16 @@ namespace ServerTools
             {
                 if (_cInfo != null)
                 {
-                    Log.Out("[SERVERTOOLS] NextShutdown 1");
+                    if (ShuttingDown)
+                    {
+                        int remainingTime = Timers.StopServerMinutes;
+                        Phrases.Dict.TryGetValue("Shutdown1", out string phrase);
+                        phrase = phrase.Replace("{TimeLeft}", string.Format("{0:00} H : {1:00} M", remainingTime / 60, remainingTime % 60));
+                        ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
+                        return;
+                    }
                     if (EventSchedule.Schedule.ContainsKey("Shutdown"))
                     {
-                        Log.Out("[SERVERTOOLS] NextShutdown 2");
                         EventSchedule.Schedule.TryGetValue("Shutdown", out DateTime time);
                         TimeSpan varTime = time - DateTime.Now;
                         double fractionalMinutes = varTime.TotalMinutes;
@@ -220,7 +226,6 @@ namespace ServerTools
                         {
                             remainingTime = 0;
                         }
-                        Log.Out("[SERVERTOOLS] NextShutdown 3");
                         Phrases.Dict.TryGetValue("Shutdown1", out string phrase);
                         phrase = phrase.Replace("{TimeLeft}", string.Format("{0:00} H : {1:00} M", remainingTime / 60, remainingTime % 60));
                         ChatHook.ChatMessage(_cInfo, Config.Chat_Response_Color + phrase + "[-]", -1, Config.Server_Response_Name, EChatType.Whisper, null);
@@ -235,7 +240,7 @@ namespace ServerTools
             }
             catch (Exception e)
             {
-                Log.Out(string.Format("[SERVERTOOLS] Error in Shutdown.NextShutdown: {0}", e.Message));
+                Log.Out("[SERVERTOOLS] Error in Shutdown.NextShutdown: {0}", e.Message);
             }
         }
     }
